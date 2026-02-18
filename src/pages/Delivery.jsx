@@ -431,6 +431,11 @@ export default function Delivery({ setView }) {
 function OrderDetailsModal({ order, onClose }) {
     const items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || [])
 
+    // Fallback for location and address
+    const lat = order.latitude || order.location?.lat || order.lat
+    const lng = order.longitude || order.location?.lng || order.lng
+    const displayAddress = order.address || order.location?.address || order.location || 'Dirección no especificada'
+
     return (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex flex-col p-4 md:p-8 overflow-y-auto">
             <div className="max-w-xl mx-auto w-full bg-[#111] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative animate-in fade-in zoom-in duration-300 mb-8">
@@ -478,13 +483,13 @@ function OrderDetailsModal({ order, onClose }) {
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-[10px] text-gray-500 uppercase font-black mb-1">Dirección de Entrega</p>
-                                    <p className="text-sm text-gray-200 leading-relaxed font-medium">{order.address}</p>
+                                    <p className="text-sm text-gray-200 leading-relaxed font-medium">{displayAddress}</p>
                                 </div>
                             </div>
 
-                            {(order.latitude && order.longitude) && (
+                            {(lat && lng) && (
                                 <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`}
+                                    href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="w-full bg-[#e5242c] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-[#c41e25] transition-all shadow-lg text-sm uppercase tracking-widest active:scale-95"
@@ -509,11 +514,11 @@ function OrderDetailsModal({ order, onClose }) {
                                 <div key={idx} className="flex justify-between items-center bg-white/[0.02] p-4 rounded-2xl border border-white/5">
                                     <div className="flex items-center gap-4">
                                         <div className="w-8 h-8 bg-[#e5242c] text-white rounded-lg flex items-center justify-center font-black text-sm">
-                                            {item.quantity}
+                                            {item.qty || item.quantity || 1}
                                         </div>
                                         <span className="text-white font-bold text-sm tracking-tight">{item.name}</span>
                                     </div>
-                                    <span className="text-gray-500 font-mono text-sm">L {Number(item.price * item.quantity).toFixed(2)}</span>
+                                    <span className="text-gray-500 font-mono text-sm">L {Number(item.total || (item.price * (item.qty || item.quantity || 1)) || 0).toFixed(2)}</span>
                                 </div>
                             ))}
                         </div>
