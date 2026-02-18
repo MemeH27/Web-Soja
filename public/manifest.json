@@ -24,13 +24,13 @@
       "purpose": "any"
     },
     {
-      "src": "/img/logo/logo.png",
+      "src": "/img/pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/img/logo/logo.png",
+      "src": "/img/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -43,7 +43,7 @@
       "short_name": "Pedir",
       "description": "Ir directamente al menú para hacer un pedido",
       "url": "/",
-      "icons": [{ "src": "/img/logo/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/img/pwa-192x192.png", "sizes": "192x192" }]
     }
   ]
 }

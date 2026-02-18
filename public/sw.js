@@ -2,6 +2,9 @@ const CACHE_NAME = 'soja-v2'
 const STATIC_ASSETS = [
     '/',
     '/index.html',
+    '/img/apple-touch-icon.png',
+    '/img/pwa-192x192.png',
+    '/img/pwa-512x512.png',
     '/img/logo/logo.png',
     '/img/logo/logo_blanco.png',
     '/img/logo-soja.ico',
