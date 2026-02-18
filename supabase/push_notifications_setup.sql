@@ -7,7 +7,7 @@ create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   role text not null default 'user' check (role in ('user', 'admin', 'delivery')),
-  endpoint text not null unique,
+  endpoint text not null,
   p256dh text,
   auth text,
   user_agent text,
@@ -19,6 +19,8 @@ create table if not exists public.push_subscriptions (
 
 create index if not exists idx_push_subscriptions_user_id on public.push_subscriptions(user_id);
 create index if not exists idx_push_subscriptions_enabled on public.push_subscriptions(enabled);
+create unique index if not exists uq_push_subscriptions_user_endpoint
+  on public.push_subscriptions(user_id, endpoint);
 
 create or replace function public.set_push_subscriptions_updated_at()
 returns trigger

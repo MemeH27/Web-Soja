@@ -23,6 +23,7 @@ If you are developing a production application, we recommend using TypeScript wi
    - `VITE_VAPID_PUBLIC_KEY`
 2. Run SQL:
    - `supabase/push_notifications_setup.sql`
+   - For existing setups already running push: `supabase/push_notifications_fix_unique.sql`
    - `supabase/push_dispatch_trigger.sql`
 3. Deploy edge function:
    - `supabase/functions/push-dispatch/index.ts`

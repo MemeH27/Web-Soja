@@ -98,7 +98,7 @@ export function usePushNotifications({ user, role = 'user' }) {
 
         const { error: upsertError } = await supabase
             .from('push_subscriptions')
-            .upsert(payload, { onConflict: 'endpoint' })
+            .upsert(payload, { onConflict: 'user_id,endpoint' })
 
         if (upsertError) throw upsertError
     }, [role, user])
@@ -205,6 +205,7 @@ export function usePushNotifications({ user, role = 'user' }) {
                     supabase
                         .from('push_subscriptions')
                         .update({ enabled: false, last_seen_at: new Date().toISOString() })
+                        .eq('user_id', user.id)
                         .eq('endpoint', endpoint),
                     10000,
                     'No se pudo actualizar la suscripcion en la base de datos.'
