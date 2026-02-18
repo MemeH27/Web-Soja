@@ -33,6 +33,12 @@ function mapPushError(err) {
     if (name === 'InvalidStateError') return 'Suscripcion push invalida. Intenta nuevamente.'
     if (name === 'AbortError') return 'La suscripcion push fue interrumpida. Reintenta.'
     if (name === 'NotSupportedError') return 'Este dispositivo o navegador no soporta Push.'
+    if (name === 'InvalidAccessError') return 'La clave VAPID publica no es valida para este navegador.'
+    if (name === 'SecurityError') return 'Push requiere HTTPS o contexto seguro para funcionar.'
+    if (/standalone|pantalla de inicio|home screen/i.test(message)) return message
+    if (/No se pudo crear la suscripcion Push/i.test(message)) {
+        return 'No se pudo crear la suscripcion Push. Revisa bloqueo de notificaciones del navegador/sistema y vuelve a intentar.'
+    }
     if (/gcm_sender_id|applicationServerKey|VAPID/i.test(message)) {
         return 'La clave VAPID publica parece invalida en el frontend.'
     }
@@ -46,6 +52,15 @@ function withTimeout(promise, ms, message) {
             setTimeout(() => reject(new Error(message)), ms)
         }),
     ])
+}
+
+async function waitForExistingSubscription(registration, attempts = 6, delayMs = 1000) {
+    for (let i = 0; i < attempts; i += 1) {
+        const sub = await registration.pushManager.getSubscription()
+        if (sub) return sub
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+    }
+    return null
 }
 
 export function usePushNotifications({ user, role = 'user' }) {
@@ -131,15 +146,26 @@ export function usePushNotifications({ user, role = 'user' }) {
         setLoading(true)
         setError(null)
         setPhase('starting')
-        debug('subscribe start')
+        debug('subscribe start', {
+            isSecureContext,
+            permission: Notification.permission,
+            hasServiceWorkerController: Boolean(navigator.serviceWorker?.controller),
+            userAgent: navigator.userAgent,
+        })
         let failed = false
         try {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
+            if (isIOS && !isStandalone) {
+                throw new Error('En iPhone/iPad debes abrir la app desde la pantalla de inicio para activar Push.')
+            }
+
             setPhase('service_worker_ready')
-            const registration = await withTimeout(
-                navigator.serviceWorker.ready,
-                10000,
-                'No se pudo obtener el Service Worker.'
-            )
+            const registration = await withTimeout((async () => {
+                const byScope = await navigator.serviceWorker.getRegistration('/')
+                if (byScope) return byScope
+                return navigator.serviceWorker.ready
+            })(), 10000, 'No se pudo obtener el Service Worker.')
             debug('service worker ready ok')
             let nextPermission = Notification.permission
 
@@ -158,6 +184,20 @@ export function usePushNotifications({ user, role = 'user' }) {
                 throw new Error('Permiso de notificaciones denegado.')
             }
 
+            setPhase('permission_state_check')
+            try {
+                const state = await registration.pushManager.permissionState({
+                    userVisibleOnly: true,
+                    applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
+                })
+                debug('push permissionState', state)
+                if (state === 'denied') {
+                    throw new Error('El navegador bloqueó Push Notifications para este sitio.')
+                }
+            } catch (permErr) {
+                debug('permissionState check warning', permErr)
+            }
+
             setPhase('read_existing_subscription')
             let subscription = await withTimeout(
                 registration.pushManager.getSubscription(),
@@ -174,22 +214,34 @@ export function usePushNotifications({ user, role = 'user' }) {
                 try {
                     subscription = await withTimeout(
                         subscribeAttempt(),
-                        15000,
+                        25000,
                         'No se pudo crear la suscripcion Push.'
                     )
                     debug('subscribe created on first attempt')
                 } catch (firstErr) {
-                    debug('first subscribe attempt failed, trying cleanup + retry', firstErr)
-                    const stale = await registration.pushManager.getSubscription()
-                    if (stale) {
-                        try { await stale.unsubscribe() } catch (_) { }
+                    debug('first subscribe attempt failed', {
+                        name: firstErr?.name,
+                        message: firstErr?.message,
+                        stack: firstErr?.stack,
+                    })
+
+                    const lateSubscription = await waitForExistingSubscription(registration, 5, 1000)
+                    if (lateSubscription) {
+                        subscription = lateSubscription
+                        debug('late subscription recovered after first failure')
+                    } else {
+                        debug('trying cleanup + retry after first failure')
+                        const stale = await registration.pushManager.getSubscription()
+                        if (stale) {
+                            try { await stale.unsubscribe() } catch (_) { }
+                        }
+                        subscription = await withTimeout(
+                            subscribeAttempt(),
+                            25000,
+                            mapPushError(firstErr)
+                        )
+                        debug('subscribe created after retry')
                     }
-                    subscription = await withTimeout(
-                        subscribeAttempt(),
-                        15000,
-                        mapPushError(firstErr)
-                    )
-                    debug('subscribe created after retry')
                 }
             }
 
