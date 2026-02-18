@@ -16,12 +16,18 @@ export default function PushNotificationToggle({ user, role = 'user', compact = 
     const isDenied = permission === 'denied'
     const label = isSubscribed ? 'Push activas' : 'Activar push'
 
+    const handleClick = async () => {
+        if (loading || isDenied) return
+        if (isSubscribed) await unsubscribe()
+        else await subscribe()
+    }
+
     return (
         <div className={compact ? 'space-y-1' : 'space-y-2'}>
             <button
                 type="button"
                 disabled={loading || isDenied}
-                onClick={() => (isSubscribed ? unsubscribe() : subscribe())}
+                onClick={handleClick}
                 className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border transition-colors disabled:opacity-40 ${isSubscribed
                         ? 'bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20'
                         : 'bg-[#e5242c]/10 text-[#e5242c] border-[#e5242c]/30 hover:bg-[#e5242c]/20'
@@ -30,10 +36,10 @@ export default function PushNotificationToggle({ user, role = 'user', compact = 
             >
                 {loading ? 'Configurando...' : label}
             </button>
-            {!compact && isDenied && (
+            {isDenied && (
                 <p className="text-[11px] text-yellow-500">Notificaciones bloqueadas en el navegador.</p>
             )}
-            {!compact && error && (
+            {error && (
                 <p className="text-[11px] text-red-400">{error}</p>
             )}
         </div>

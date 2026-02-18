@@ -19,6 +19,15 @@ function getSubscriptionKeys(subscription) {
     }
 }
 
+function withTimeout(promise, ms, message) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(message)), ms)
+        }),
+    ])
+}
+
 export function usePushNotifications({ user, role = 'user' }) {
     const [permission, setPermission] = useState(
         typeof Notification !== 'undefined' ? Notification.permission : 'default'
@@ -39,8 +48,16 @@ export function usePushNotifications({ user, role = 'user' }) {
             setIsSubscribed(false)
             return
         }
-        const registration = await navigator.serviceWorker.ready
-        const sub = await registration.pushManager.getSubscription()
+        const registration = await withTimeout(
+            navigator.serviceWorker.ready,
+            10000,
+            'No se pudo obtener el Service Worker.'
+        )
+        const sub = await withTimeout(
+            registration.pushManager.getSubscription(),
+            10000,
+            'No se pudo leer la suscripcion Push.'
+        )
         setIsSubscribed(Boolean(sub))
     }, [isSupported, user])
 
@@ -76,61 +93,98 @@ export function usePushNotifications({ user, role = 'user' }) {
         setLoading(true)
         setError(null)
         try {
-            const registration = await navigator.serviceWorker.ready
+            const registration = await withTimeout(
+                navigator.serviceWorker.ready,
+                10000,
+                'No se pudo obtener el Service Worker.'
+            )
             let nextPermission = Notification.permission
 
             if (nextPermission !== 'granted') {
-                nextPermission = await Notification.requestPermission()
+                nextPermission = await withTimeout(
+                    Notification.requestPermission(),
+                    15000,
+                    'El permiso de notificaciones no respondio a tiempo.'
+                )
                 setPermission(nextPermission)
             }
             if (nextPermission !== 'granted') {
                 throw new Error('Permiso de notificaciones denegado.')
             }
 
-            let subscription = await registration.pushManager.getSubscription()
+            let subscription = await withTimeout(
+                registration.pushManager.getSubscription(),
+                10000,
+                'No se pudo leer la suscripcion Push.'
+            )
             if (!subscription) {
-                subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
-                })
+                subscription = await withTimeout(
+                    registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
+                    }),
+                    15000,
+                    'No se pudo crear la suscripcion Push.'
+                )
             }
 
-            await saveSubscription(subscription)
-            setIsSubscribed(true)
+            await withTimeout(
+                saveSubscription(subscription),
+                10000,
+                'No se pudo guardar la suscripcion en la base de datos.'
+            )
+            await syncSubscriptionState()
             return { ok: true }
         } catch (err) {
             setError(err.message || 'No se pudo activar notificaciones push.')
-            throw err
+            return { ok: false, error: err }
         } finally {
             setLoading(false)
         }
-    }, [isSupported, saveSubscription, user])
+    }, [isSupported, saveSubscription, syncSubscriptionState, user])
 
     const unsubscribe = useCallback(async () => {
         if (!isSupported || !user) return
         setLoading(true)
         setError(null)
         try {
-            const registration = await navigator.serviceWorker.ready
-            const subscription = await registration.pushManager.getSubscription()
+            const registration = await withTimeout(
+                navigator.serviceWorker.ready,
+                10000,
+                'No se pudo obtener el Service Worker.'
+            )
+            const subscription = await withTimeout(
+                registration.pushManager.getSubscription(),
+                10000,
+                'No se pudo leer la suscripcion Push.'
+            )
 
             if (subscription) {
                 const endpoint = subscription.endpoint
-                await subscription.unsubscribe()
-                await supabase
-                    .from('push_subscriptions')
-                    .update({ enabled: false, last_seen_at: new Date().toISOString() })
-                    .eq('endpoint', endpoint)
+                await withTimeout(
+                    subscription.unsubscribe(),
+                    10000,
+                    'No se pudo desactivar la suscripcion Push local.'
+                )
+                await withTimeout(
+                    supabase
+                        .from('push_subscriptions')
+                        .update({ enabled: false, last_seen_at: new Date().toISOString() })
+                        .eq('endpoint', endpoint),
+                    10000,
+                    'No se pudo actualizar la suscripcion en la base de datos.'
+                )
             }
 
+            await syncSubscriptionState()
             setIsSubscribed(false)
         } catch (err) {
             setError(err.message || 'No se pudo desactivar notificaciones push.')
-            throw err
+            return { ok: false, error: err }
         } finally {
             setLoading(false)
         }
-    }, [isSupported, user])
+    }, [isSupported, syncSubscriptionState, user])
 
     useEffect(() => {
         if (!isSupported) return
