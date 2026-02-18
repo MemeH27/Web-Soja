@@ -1,0 +1,43 @@
+{
+  "name": "SOJA Comida China",
+  "short_name": "SOJA",
+  "description": "Pide tu comida china favorita de SOJA directamente desde tu dispositivo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#e5242c",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["food", "shopping"],
+  "icons": [
+    {
+      "src": "/img/LOGO SOJA.ico",
+      "sizes": "any",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/logo/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/logo/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Hacer Pedido",
+      "short_name": "Pedir",
+      "description": "Ir directamente al menú para hacer un pedido",
+      "url": "/",
+      "icons": [{ "src": "/img/logo/logo.png", "sizes": "192x192" }]
+    }
+  ]
+}

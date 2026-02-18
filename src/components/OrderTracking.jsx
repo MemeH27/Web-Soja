@@ -5,8 +5,8 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../supabaseClient'
 
-// SOJA Location - Santa Rosa de Copán, Honduras
-const RESTAURANT_POS = [14.7714, -88.7793]
+// SOJA Location - Entre 2 y 3 calle NE en av. 4 NE, Santa Rosa de Copán
+const RESTAURANT_POS = [14.76816879623832, -88.77541047130629]
 
 // Custom colored DivIcons (visible on dark maps)
 const restaurantIcon = new L.DivIcon({
