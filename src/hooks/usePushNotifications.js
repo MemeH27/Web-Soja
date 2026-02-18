@@ -35,6 +35,12 @@ function mapPushError(err) {
     if (name === 'NotSupportedError') return 'Este dispositivo o navegador no soporta Push.'
     if (name === 'InvalidAccessError') return 'La clave VAPID publica no es valida para este navegador.'
     if (name === 'SecurityError') return 'Push requiere HTTPS o contexto seguro para funcionar.'
+    if (name === 'TimeoutError') {
+        if (/crear la suscripcion Push/i.test(message)) {
+            return 'El navegador tardo demasiado al crear la suscripcion Push. Revisa notificaciones del sistema y vuelve a intentar.'
+        }
+        return 'La operacion push tardo demasiado. Intenta de nuevo.'
+    }
     if (/standalone|pantalla de inicio|home screen/i.test(message)) return message
     if (/No se pudo crear la suscripcion Push/i.test(message)) {
         return 'No se pudo crear la suscripcion Push. Revisa bloqueo de notificaciones del navegador/sistema y vuelve a intentar.'
@@ -49,12 +55,16 @@ function withTimeout(promise, ms, message) {
     return Promise.race([
         promise,
         new Promise((_, reject) => {
-            setTimeout(() => reject(new Error(message)), ms)
+            setTimeout(() => {
+                const timeoutErr = new Error(message)
+                timeoutErr.name = 'TimeoutError'
+                reject(timeoutErr)
+            }, ms)
         }),
     ])
 }
 
-async function waitForExistingSubscription(registration, attempts = 6, delayMs = 1000) {
+async function waitForExistingSubscription(registration, attempts = 15, delayMs = 1000) {
     for (let i = 0; i < attempts; i += 1) {
         const sub = await registration.pushManager.getSubscription()
         if (sub) return sub
@@ -225,7 +235,7 @@ export function usePushNotifications({ user, role = 'user' }) {
                         stack: firstErr?.stack,
                     })
 
-                    const lateSubscription = await waitForExistingSubscription(registration, 5, 1000)
+                    const lateSubscription = await waitForExistingSubscription(registration, 15, 1000)
                     if (lateSubscription) {
                         subscription = lateSubscription
                         debug('late subscription recovered after first failure')
@@ -238,7 +248,7 @@ export function usePushNotifications({ user, role = 'user' }) {
                         subscription = await withTimeout(
                             subscribeAttempt(),
                             25000,
-                            mapPushError(firstErr)
+                            'No se pudo crear la suscripcion Push en el reintento.'
                         )
                         debug('subscribe created after retry')
                     }
@@ -336,17 +346,6 @@ export function usePushNotifications({ user, role = 'user' }) {
             setError(mapPushError(err))
         })
     }, [syncSubscriptionState])
-
-    useEffect(() => {
-        if (!loading) return
-        const watchdog = setTimeout(() => {
-            setLoading(false)
-            setPhase('error')
-            setError('El proceso tardó demasiado. Recarga la página y vuelve a intentar.')
-            debug('global loading watchdog fired')
-        }, 30000)
-        return () => clearTimeout(watchdog)
-    }, [debug, loading])
 
     return {
         isSupported,
