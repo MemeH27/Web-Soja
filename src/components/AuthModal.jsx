@@ -55,22 +55,14 @@ export default function AuthModal({ isOpen, onClose }) {
 
         try {
             if (isLogin) {
-                // Check if email exists in profiles first to provide specific error
-                const { data: profileCheck, error: checkError } = await supabase
-                    .from('profiles')
-                    .select('email')
-                    .eq('email', email)
-                    .maybeSingle()
-
-                if (!profileCheck && !checkError) {
-                    throw new Error('Este correo electrónico no está registrado')
-                }
-
                 const { error } = await signIn(email, password)
                 if (error) {
                     // Specific mapping for login errors
                     if (error.message === 'Invalid login credentials') {
-                        throw new Error('La contraseña es incorrecta')
+                        throw new Error('Correo o contraseña incorrectos')
+                    }
+                    if (error.message === 'Email not confirmed') {
+                        throw new Error('Por favor, confirma tu correo electrónico')
                     }
                     throw error
                 }
