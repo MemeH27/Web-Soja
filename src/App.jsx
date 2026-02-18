@@ -79,6 +79,37 @@ function NewOrderToast({ order, onDismiss }) {
   )
 }
 
+function UserOrderStatusToast({ order, onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 7000)
+    return () => clearTimeout(timer)
+  }, [onDismiss])
+
+  const statusLabel = order.status === 'pending'
+    ? 'Pedido confirmado'
+    : order.status === 'prepared'
+      ? 'Tu pedido se esta preparando'
+      : order.status === 'shipped'
+        ? 'Tu pedido va en camino'
+        : 'Pedido entregado'
+
+  return (
+    <div className="fixed top-4 left-4 z-[9999] bg-[#111] border border-white/20 rounded-2xl p-4 shadow-2xl animate-in slide-in-from-left duration-500 max-w-sm">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-[#e5242c]/10 rounded-xl flex items-center justify-center text-[#e5242c] shrink-0 text-xl">
+          🍜
+        </div>
+        <div className="flex-1">
+          <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-widest mb-1">Actualizacion de pedido</p>
+          <p className="text-white font-bold text-sm">{statusLabel}</p>
+          <p className="text-gray-400 text-xs">{order.delivery_type === 'delivery' ? 'Entrega a domicilio' : 'Para llevar'}</p>
+        </div>
+        <button onClick={onDismiss} className="text-gray-600 hover:text-white transition-colors text-lg leading-none">×</button>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const { user, profile, role, loading: authLoading } = useAuth()
   const [view, setView] = useState('home')
@@ -93,6 +124,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [activeOrder, setActiveOrder] = useState(null)
   const [newOrderToast, setNewOrderToast] = useState(null)
+  const [userOrderToast, setUserOrderToast] = useState(null)
   const audioRef = useRef(null)
   const notifSubRef = useRef(null)
 
@@ -118,46 +150,59 @@ function App() {
     }
   }, [user, authLoading, view, showAuthModal])
 
-  // Restore active order from localStorage
+  // Restore active order from localStorage on first load
   useEffect(() => {
     const savedOrderId = localStorage.getItem('soja_active_order_id')
-    if (savedOrderId && !activeOrder) {
-      const fetchActiveOrder = async () => {
-        const { data } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', savedOrderId)
-          .single()
+    if (!savedOrderId || activeOrder) return
 
-        if (data && data.status !== 'delivered') {
-          setActiveOrder(data)
-        } else if (data && data.status === 'delivered') {
-          localStorage.removeItem('soja_active_order_id')
-        }
+    const fetchActiveOrder = async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', savedOrderId)
+        .single()
+
+      if (data && data.status !== 'delivered') {
+        setActiveOrder(data)
+      } else if (data && data.status === 'delivered') {
+        localStorage.removeItem('soja_active_order_id')
       }
-      fetchActiveOrder()
-
-      const sub = supabase
-        .channel('active_order_tracking')
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${savedOrderId}`
-        }, (payload) => {
-          setActiveOrder(payload.new)
-          if (payload.new.status === 'delivered') {
-            setTimeout(() => {
-              localStorage.removeItem('soja_active_order_id')
-              setActiveOrder(null)
-            }, 10000)
-          }
-        })
-        .subscribe()
-
-      return () => { supabase.removeChannel(sub) }
     }
-  }, [])
+    fetchActiveOrder()
+  }, [activeOrder])
+
+  // Keep user order tracking subscription always tied to current active order
+  useEffect(() => {
+    const trackedOrderId = activeOrder?.id || localStorage.getItem('soja_active_order_id')
+    if (!trackedOrderId) return
+
+    const sub = supabase
+      .channel(`active_order_tracking_${trackedOrderId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'orders',
+        filter: `id=eq.${trackedOrderId}`
+      }, (payload) => {
+        setActiveOrder((prev) => {
+          const nextOrder = payload.new
+          if (prev?.status && prev.status !== nextOrder.status) {
+            setUserOrderToast(nextOrder)
+          }
+          return nextOrder
+        })
+
+        if (payload.new.status === 'delivered') {
+          setTimeout(() => {
+            localStorage.removeItem('soja_active_order_id')
+            setActiveOrder(null)
+          }, 10000)
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(sub) }
+  }, [activeOrder?.id])
 
   // ─── Secret route detection (kept for backwards compat) ───────────────────
   useEffect(() => {
@@ -335,6 +380,12 @@ function App() {
         <NewOrderToast
           order={newOrderToast}
           onDismiss={() => setNewOrderToast(null)}
+        />
+      )}
+      {userOrderToast && role !== 'admin' && (
+        <UserOrderStatusToast
+          order={userOrderToast}
+          onDismiss={() => setUserOrderToast(null)}
         />
       )}
 

@@ -1,10 +1,11 @@
-const CACHE_NAME = 'soja-v1'
+const CACHE_NAME = 'soja-v2'
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/img/logo/logo.png',
     '/img/logo/logo_blanco.png',
-    '/img/LOGO SOJA.ico'
+    '/img/logo-soja.ico',
+    '/img/logo-soja.svg'
 ]
 
 // Install: cache static assets

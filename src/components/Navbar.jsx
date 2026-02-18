@@ -31,7 +31,7 @@ export default function Navbar({ setView, user, setShowAuthModal }) {
         <header
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileMenuOpen ? 'bg-black/90 backdrop-blur-md shadow-lg' : 'bg-transparent'
                 }`}
-            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+            style={{ paddingTop: 'max(env(safe-area-inset-top), 0px)' }}
         >
             <div className={`max-w-[1180px] mx-auto px-6 flex justify-between items-center ${scrolled || mobileMenuOpen ? 'py-3' : 'py-5'}`}>
                 <a href="#inicio" className="flex items-center gap-2 z-50 relative" onClick={() => handleLinkClick('#inicio')}>
@@ -90,11 +90,15 @@ export default function Navbar({ setView, user, setShowAuthModal }) {
                 <div
                     className={`fixed top-0 right-0 bottom-0 w-[80%] max-w-[300px] z-[70] flex flex-col shadow-2xl border-l border-white/10 transition-transform duration-300 ease-out md:hidden ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
                         }`}
-                    style={{ backgroundColor: '#000000' }}
+                    style={{
+                        backgroundColor: '#000000',
+                        paddingTop: 'max(env(safe-area-inset-top), 0px)'
+                    }}
                 >
-                    <div className="p-8 pt-24 flex flex-col gap-6 flex-1 bg-black relative">
+                    <div className="p-8 pt-20 flex flex-col gap-6 flex-1 bg-black relative">
                         <button
                             className="absolute top-6 right-6 text-white text-2xl hover:text-[#e5242c] transition-colors"
+                            style={{ top: 'calc(env(safe-area-inset-top) + 1.5rem)' }}
                             onClick={() => setMobileMenuOpen(false)}
                         >
                             <FaXmark />

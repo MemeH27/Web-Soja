@@ -12,10 +12,16 @@
   "categories": ["food", "shopping"],
   "icons": [
     {
-      "src": "/img/LOGO SOJA.ico",
+      "src": "/img/logo-soja.ico",
       "sizes": "any",
       "type": "image/x-icon",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/img/logo-soja.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
       "src": "/img/logo/logo.png",
