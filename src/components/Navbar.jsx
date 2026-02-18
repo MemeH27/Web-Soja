@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FaBars, FaXmark, FaUtensils, FaInstagram, FaFacebookF, FaWhatsapp, FaCircleUser, FaRightFromBracket, FaShieldHalved } from 'react-icons/fa6'
 import { useAuth } from '../hooks/useAuth.jsx'
+import PushNotificationToggle from './PushNotificationToggle'
 
 export default function Navbar({ setView, user, setShowAuthModal }) {
     const { profile, role, signOut } = useAuth()
@@ -46,6 +47,7 @@ export default function Navbar({ setView, user, setShowAuthModal }) {
 
                     {user ? (
                         <div className="flex items-center gap-3">
+                            <PushNotificationToggle user={user} role={activeRole} compact />
                             <button
                                 onClick={() => setView('profile')}
                                 className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-full flex items-center gap-2 text-sm font-bold transition-all border border-white/10"
@@ -108,6 +110,9 @@ export default function Navbar({ setView, user, setShowAuthModal }) {
 
                         {user ? (
                             <>
+                                <div className="pb-4 border-b border-white/20">
+                                    <PushNotificationToggle user={user} role={activeRole} />
+                                </div>
                                 <button
                                     onClick={() => { setView('profile'); setMobileMenuOpen(false); }}
                                     className="text-xl text-white font-bold hover:text-[#e5242c] transition-colors border-b border-white/20 pb-4 text-left flex items-center gap-3"

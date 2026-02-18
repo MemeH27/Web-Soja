@@ -19,6 +19,26 @@ function getSubscriptionKeys(subscription) {
     }
 }
 
+function normalizeVapidKey(rawKey) {
+    return String(rawKey || '')
+        .trim()
+        .replace(/^"|"$/g, '')
+}
+
+function mapPushError(err) {
+    const name = err?.name || ''
+    const message = err?.message || ''
+
+    if (name === 'NotAllowedError') return 'Permiso denegado para notificaciones push.'
+    if (name === 'InvalidStateError') return 'Suscripcion push invalida. Intenta nuevamente.'
+    if (name === 'AbortError') return 'La suscripcion push fue interrumpida. Reintenta.'
+    if (name === 'NotSupportedError') return 'Este dispositivo o navegador no soporta Push.'
+    if (/gcm_sender_id|applicationServerKey|VAPID/i.test(message)) {
+        return 'La clave VAPID publica parece invalida en el frontend.'
+    }
+    return message || 'No se pudo configurar notificaciones push.'
+}
+
 function withTimeout(promise, ms, message) {
     return Promise.race([
         promise,
@@ -87,8 +107,9 @@ export function usePushNotifications({ user, role = 'user' }) {
         if (!isSupported) throw new Error('Este dispositivo no soporta Push Notifications.')
         if (!user) throw new Error('Necesitas iniciar sesion para activar notificaciones push.')
 
-        const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+        const vapidPublicKey = normalizeVapidKey(import.meta.env.VITE_VAPID_PUBLIC_KEY)
         if (!vapidPublicKey) throw new Error('Falta configurar VITE_VAPID_PUBLIC_KEY en el frontend.')
+        if (vapidPublicKey.length < 40) throw new Error('VITE_VAPID_PUBLIC_KEY no tiene un formato valido.')
 
         setLoading(true)
         setError(null)
@@ -118,14 +139,28 @@ export function usePushNotifications({ user, role = 'user' }) {
                 'No se pudo leer la suscripcion Push.'
             )
             if (!subscription) {
-                subscription = await withTimeout(
-                    registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
-                    }),
-                    15000,
-                    'No se pudo crear la suscripcion Push.'
-                )
+                const subscribeAttempt = async () => registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
+                })
+
+                try {
+                    subscription = await withTimeout(
+                        subscribeAttempt(),
+                        15000,
+                        'No se pudo crear la suscripcion Push.'
+                    )
+                } catch (firstErr) {
+                    const stale = await registration.pushManager.getSubscription()
+                    if (stale) {
+                        try { await stale.unsubscribe() } catch (_) { }
+                    }
+                    subscription = await withTimeout(
+                        subscribeAttempt(),
+                        15000,
+                        mapPushError(firstErr)
+                    )
+                }
             }
 
             await withTimeout(
@@ -136,7 +171,7 @@ export function usePushNotifications({ user, role = 'user' }) {
             await syncSubscriptionState()
             return { ok: true }
         } catch (err) {
-            setError(err.message || 'No se pudo activar notificaciones push.')
+            setError(mapPushError(err))
             return { ok: false, error: err }
         } finally {
             setLoading(false)
