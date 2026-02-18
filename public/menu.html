@@ -1,0 +1,135 @@
+﻿<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Menu Completo | SOJA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --primary: #e5242c;
+        --secondary: #000000;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Manrope', sans-serif;
+        background: radial-gradient(circle at top right, rgba(229, 36, 44, 0.2), transparent 35%), #070707;
+        color: #f2f2f2;
+      }
+
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 1.2rem 1rem 2.4rem;
+      }
+
+      .head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .head img {
+        width: 102px;
+      }
+
+      .head h1 {
+        margin: 0;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(2rem, 4vw, 3rem);
+      }
+
+      .hint {
+        color: #ffd0d2;
+        font-weight: 600;
+        margin: 0 0 1.2rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+      }
+
+      .card {
+        background: #111;
+        border: 1px solid rgba(229, 36, 44, 0.3);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+
+      .card img {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+      }
+
+      .info {
+        padding: 0.75rem;
+      }
+
+      .info h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .price {
+        display: inline-block;
+        margin-top: 0.4rem;
+        padding: 0.2rem 0.58rem;
+        border-radius: 999px;
+        background: rgba(229, 36, 44, 0.2);
+        color: #ffdadd;
+        font-weight: 700;
+      }
+
+      .back {
+        display: inline-block;
+        margin-top: 1.4rem;
+        padding: 0.7rem 1rem;
+        border-radius: 10px;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 800;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="head">
+        <img src="/img/logo/logo_blanco.png" alt="SOJA" />
+        <h1>Menu Completo SOJA</h1>
+      </header>
+      <p class="hint">Precios de ejemplo en Lempiras (L). Luego se pueden actualizar con los oficiales.</p>
+
+      <section class="grid">
+        <article class="card"><img src="/img/productos/arrozcharsiu.jpg" alt="Arroz Charsiu" /><div class="info"><h3>Arroz Charsiu</h3><span class="price">L 220</span></div></article>
+        <article class="card"><img src="/img/productos/arrozconmariscos.jpg" alt="Arroz con Mariscos" /><div class="info"><h3>Arroz con Mariscos</h3><span class="price">L 280</span></div></article>
+        <article class="card"><img src="/img/productos/arrozfrito.jpg" alt="Arroz Frito" /><div class="info"><h3>Arroz Frito</h3><span class="price">L 180</span></div></article>
+        <article class="card"><img src="/img/productos/camaronesempanizados.jpg" alt="Camarones Empanizados" /><div class="info"><h3>Camarones Empanizados</h3><span class="price">L 260</span></div></article>
+        <article class="card"><img src="/img/productos/camaronkunpao.jpg" alt="Camaron Kun Pao" /><div class="info"><h3>Camaron Kun Pao</h3><span class="price">L 255</span></div></article>
+        <article class="card"><img src="/img/productos/chileconajonjoli.jpg" alt="Chile con Ajonjoli" /><div class="info"><h3>Chile con Ajonjoli</h3><span class="price">L 210</span></div></article>
+        <article class="card"><img src="/img/productos/pollokunpao.jpg" alt="Pollo Kun Pao" /><div class="info"><h3>Pollo Kun Pao</h3><span class="price">L 215</span></div></article>
+        <article class="card"><img src="/img/productos/pollonaranja.jpg" alt="Pollo Naranja" /><div class="info"><h3>Pollo Naranja</h3><span class="price">L 220</span></div></article>
+        <article class="card"><img src="/img/productos/pollosesame.jpg" alt="Pollo Sesame" /><div class="info"><h3>Pollo Sesame</h3><span class="price">L 225</span></div></article>
+        <article class="card"><img src="/img/productos/sopawantan.jpg" alt="Sopa Wantan" /><div class="info"><h3>Sopa Wantan</h3><span class="price">L 150</span></div></article>
+        <article class="card"><img src="/img/productos/tacoschinos.jpg" alt="Tacos Chinos" /><div class="info"><h3>Tacos Chinos</h3><span class="price">L 140</span></div></article>
+        <article class="card"><img src="/img/productos/wantanvapor.jpg" alt="Wantan al Vapor" /><div class="info"><h3>Wantan al Vapor</h3><span class="price">L 145</span></div></article>
+        <article class="card"><img src="/img/productos/refrescos.png" alt="Refrescos" /><div class="info"><h3>Refrescos</h3><span class="price">L 40</span></div></article>
+        <article class="card"><img src="/img/productos/telipton.webp" alt="Te Lipton" /><div class="info"><h3>Te Lipton</h3><span class="price">L 45</span></div></article>
+        <article class="card"><img src="/img/productos/frescoscoca.jpg" alt="Aguas Frescas" /><div class="info"><h3>Aguas Frescas</h3><span class="price">L 50</span></div></article>
+      </section>
+
+      <a class="back" href="/" target="_self">Volver al inicio</a>
+    </div>
+  </body>
+</html>
