@@ -411,6 +411,8 @@ function ProductModal({ onClose, product, onSave }) {
 }
 
 function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
+    const [openDropdownId, setOpenDropdownId] = useState(null)
+
     if (loading) return <div className="p-8 text-gray-400">Cargando pedidos...</div>
     if (orders.length === 0) return <div className="text-gray-500 italic p-8 bg-[#111] rounded-2xl border border-white/5">No hay pedidos registrados en el sistema.</div>
 
@@ -473,24 +475,61 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
                         <div className="flex items-center gap-3 w-full md:w-auto">
                             {order.delivery_type === 'delivery' && (
                                 <div className="relative flex-1 md:flex-none">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e5242c] pointer-events-none">
-                                        <FaMotorcycle size={16} />
-                                    </div>
-                                    <select
-                                        className="w-full bg-black border-2 border-[#e5242c]/30 hover:border-[#e5242c] rounded-2xl pl-12 pr-10 py-3 text-xs text-white outline-none focus:ring-4 focus:ring-[#e5242c]/10 transition-all appearance-none cursor-pointer font-black uppercase tracking-wider shadow-lg shadow-[#e5242c]/5"
-                                        value={order.delivery_id || ''}
-                                        onChange={(e) => assignDelivery(order.id, e.target.value)}
+                                    <button
+                                        onClick={() => setOpenDropdownId(openDropdownId === order.id ? null : order.id)}
+                                        className="w-full md:w-64 bg-black border-2 border-[#e5242c]/30 hover:border-[#e5242c] rounded-2xl pl-12 pr-10 py-3 text-xs text-left text-white outline-none focus:ring-4 focus:ring-[#e5242c]/10 transition-all cursor-pointer font-black uppercase tracking-wider shadow-lg shadow-[#e5242c]/5 flex items-center justify-between"
                                     >
-                                        <option value="" className="bg-[#111] text-gray-500">Asignar Repartidor</option>
-                                        {deliveryUsers.map(u => (
-                                            <option key={u.id} value={u.id} className="bg-[#111] text-white py-2">
-                                                {u.first_name} {u.last_name} ({u.delivery_id_card})
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#e5242c] pointer-events-none">
-                                        <FaChevronDown size={12} />
-                                    </div>
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e5242c]">
+                                            <FaMotorcycle size={16} />
+                                        </div>
+                                        <span className="truncate">
+                                            {order.delivery_id
+                                                ? deliveryUsers.find(u => u.id === order.delivery_id)
+                                                    ? `${deliveryUsers.find(u => u.id === order.delivery_id).first_name} (${deliveryUsers.find(u => u.id === order.delivery_id).delivery_id_card})`
+                                                    : 'Asignado'
+                                                : 'Asignar Repartidor'}
+                                        </span>
+                                        <FaChevronDown size={12} className={`text-[#e5242c] transition-transform ${openDropdownId === order.id ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {openDropdownId === order.id && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-[60]"
+                                                onClick={() => setOpenDropdownId(null)}
+                                            />
+                                            <div className="absolute bottom-full md:top-full mb-2 md:mb-0 md:mt-2 left-0 right-0 bg-[#0c0c0c] border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-[70] animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div
+                                                    onClick={() => { assignDelivery(order.id, null); setOpenDropdownId(null); }}
+                                                    className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 hover:bg-white/5 cursor-pointer border-b border-white/5 transition-colors"
+                                                >
+                                                    Sin Asignar
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                    {deliveryUsers.map(u => (
+                                                        <div
+                                                            key={u.id}
+                                                            onClick={() => {
+                                                                assignDelivery(order.id, u.id)
+                                                                setOpenDropdownId(null)
+                                                            }}
+                                                            className={`px-6 py-4 text-xs font-bold transition-all cursor-pointer flex items-center justify-between group/item
+                                                                ${order.delivery_id === u.id ? 'bg-[#e5242c] text-white' : 'text-gray-300 hover:bg-[#e5242c]/10 hover:text-white'}
+                                                            `}
+                                                        >
+                                                            <span>{u.first_name} {u.last_name}</span>
+                                                            <span className={`text-[10px] font-black tracking-widest ${order.delivery_id === u.id ? 'text-white/60' : 'text-[#e5242c]'}`}>
+                                                                {u.delivery_id_card}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                {deliveryUsers.length === 0 && (
+                                                    <div className="px-6 py-4 text-xs text-gray-500 italic">No hay repartidores activos</div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
                             <button
