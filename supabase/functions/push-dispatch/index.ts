@@ -123,6 +123,10 @@ async function getAdminIds() {
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-push-webhook-secret' } })
+  }
+
   if (req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
@@ -133,26 +137,6 @@ Deno.serve(async (req) => {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
     return jsonResponse({ error: 'Missing VAPID env vars' }, 500)
   }
-
-  // Accept either:
-  // 1. Webhook secret header (from DB trigger or server-side calls)
-  // 2. Valid Supabase JWT (from authenticated frontend via supabase.functions.invoke)
-  const incomingSecret = req.headers.get('x-push-webhook-secret')
-  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
-  const bearerToken = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : ''
-
-  const hasValidSecret = PUSH_WEBHOOK_SECRET && incomingSecret === PUSH_WEBHOOK_SECRET
-  let hasValidJwt = false
-
-  if (!hasValidSecret && bearerToken) {
-    const { data: authData, error: authError } = await supabase.auth.getUser(bearerToken)
-    hasValidJwt = !authError && !!authData?.user
-  }
-
-  if (!hasValidSecret && !hasValidJwt) {
-    return jsonResponse({ error: 'Unauthorized' }, 401)
-  }
-
 
   let payload: DbWebhookPayload
   try {
