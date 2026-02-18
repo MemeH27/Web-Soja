@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { FaBars, FaXmark, FaUtensils, FaInstagram, FaFacebookF, FaWhatsapp, FaCircleUser, FaRightFromBracket, FaShieldHalved } from 'react-icons/fa6'
+import { FaClock } from 'react-icons/fa'
 import { useAuth } from '../hooks/useAuth.jsx'
 import PushNotificationToggle from './PushNotificationToggle'
 
