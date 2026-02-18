@@ -79,7 +79,6 @@ export default function Admin({ setView }) {
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .order('created_at', { ascending: false })
 
         if (data) {
             console.log('✅ Usuarios recibidos:', data.length, data)
