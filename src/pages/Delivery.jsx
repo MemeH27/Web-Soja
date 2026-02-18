@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FaMotorcycle, FaBox, FaMapMarkerAlt, FaCheckCircle, FaSignOutAlt, FaPhone, FaClock, FaTimes, FaUser } from 'react-icons/fa'
+import { FaMotorcycle, FaBox, FaMapMarkerAlt, FaCheckCircle, FaSignOutAlt, FaPhone, FaClock, FaTimes, FaUser, FaArrowRight } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
 
