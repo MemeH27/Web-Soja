@@ -22,40 +22,6 @@ import Admin from './pages/Admin'
 import Delivery from './pages/Delivery'
 import RoleGuard from './components/RoleGuard'
 
-// ─── Role Guard Component ─────────────────────────────────────────────────────
-function RoleGuard({ children, requiredRole, user, role, loading }) {
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[#e5242c] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-gray-500 animate-pulse font-bold tracking-widest uppercase text-xs">Verificando Credenciales...</p>
-      </div>
-    )
-  }
-
-  // For delivery: must be logged in with delivery role
-  if (requiredRole === 'delivery') {
-    // Delivery page handles its own login flow, so we just render it
-    return children
-  }
-
-  // For admin: must be logged in with admin role
-  if (requiredRole === 'admin') {
-    if (!user || role !== 'admin') {
-      console.warn(`⛔ Acceso denegado: rol '${role}' intentó acceder al panel de admin`)
-      return (
-        <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center gap-4">
-          <div className="text-6xl">🔒</div>
-          <h1 className="text-2xl font-black uppercase tracking-widest">Acceso Denegado</h1>
-          <p className="text-gray-500 text-sm">No tienes permisos para ver esta sección.</p>
-        </div>
-      )
-    }
-    return children
-  }
-
-  return children
-}
 
 // ─── New Order Notification ───────────────────────────────────────────────────
 function NewOrderToast({ order, onDismiss }) {
