@@ -434,7 +434,7 @@ function OrderDetailsModal({ order, onClose }) {
     // Fallback for location and address
     const lat = order.latitude || order.location?.lat || order.lat
     const lng = order.longitude || order.location?.lng || order.lng
-    const displayAddress = order.address || order.location?.address || order.location || 'Dirección no especificada'
+    const displayAddress = order.address || order.location?.address || (typeof order.location === 'string' ? order.location : null) || 'Dirección no especificada'
 
     return (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex flex-col p-4 md:p-8 overflow-y-auto">
