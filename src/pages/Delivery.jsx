@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { FaMotorcycle, FaBox, FaMapMarkerAlt, FaCheckCircle, FaSignOutAlt, FaPhone, FaClock, FaTimes, FaUser, FaArrowRight } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
+import PushNotificationToggle from '../components/PushNotificationToggle'
 
 function DeliveryAssignmentToast({ order, onDismiss }) {
     useEffect(() => {
@@ -426,6 +427,7 @@ export default function Delivery({ setView }) {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <PushNotificationToggle user={user} role="delivery" compact />
                     <button
                         onClick={fetchAssignedOrders}
                         className={`w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-[#e5242c] rounded-xl flex items-center justify-center transition-all ${isRefreshing ? 'animate-spin' : ''}`}

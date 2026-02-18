@@ -14,3 +14,17 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+## Push Notifications Setup
+
+1. Copy `.env.example` to `.env` and set:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_VAPID_PUBLIC_KEY`
+2. Run SQL:
+   - `supabase/push_notifications_setup.sql`
+   - `supabase/push_dispatch_trigger.sql`
+3. Deploy edge function:
+   - `supabase/functions/push-dispatch/index.ts`
+4. Set function secrets as documented in:
+   - `supabase/functions/push-dispatch/README.md`

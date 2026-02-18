@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { supabase } from '../supabaseClient'
 import { FaUser, FaPhone, FaLocationDot, FaEnvelope, FaPenToSquare, FaFloppyDisk, FaXmark, FaRightFromBracket, FaClock } from 'react-icons/fa6'
 import LocationPicker from '../components/LocationPicker'
+import PushNotificationToggle from '../components/PushNotificationToggle'
 
 export default function Profile({ onBack }) {
     const { user, profile, updateProfile, signOut, refreshProfile } = useAuth()
@@ -123,6 +124,9 @@ export default function Profile({ onBack }) {
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-gray-400 font-medium tracking-wide uppercase text-[10px]">Estatus de Cuenta</span>
                                     <span className="bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-green-500/20">Activa</span>
+                                </div>
+                                <div className="pt-2">
+                                    <PushNotificationToggle user={user} role={profile?.role || 'user'} />
                                 </div>
                             </div>
                         </div>

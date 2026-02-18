@@ -59,6 +59,7 @@ self.addEventListener('push', (event) => {
         body: data.body || 'Tienes un nuevo pedido esperando',
         icon: '/img/logo_soja_pwa.png',
         badge: '/img/logo_soja_pwa.png',
+        tag: data.tag || 'soja-notification',
         vibrate: [200, 100, 200],
         data: data.url || '/',
         actions: [
@@ -76,3 +77,4 @@ self.addEventListener('notificationclick', (event) => {
         event.waitUntil(clients.openWindow(event.notification.data || '/'))
     }
 })
+

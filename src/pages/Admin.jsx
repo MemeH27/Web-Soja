@@ -4,9 +4,10 @@ import { supabase } from '../supabaseClient'
 import { useMenu } from '../hooks/useMenu'
 import { useReviews } from '../hooks/useReviews'
 import { useAuth } from '../hooks/useAuth.jsx'
+import PushNotificationToggle from '../components/PushNotificationToggle'
 
 export default function Admin({ setView }) {
-    const { profile, role, signOut, loading: authLoading } = useAuth()
+    const { user, profile, role, signOut, loading: authLoading } = useAuth()
     const activeRole = role || profile?.role
 
     const handleLogout = async () => {
@@ -255,6 +256,7 @@ export default function Admin({ setView }) {
                                         'Gestionar Reseñas'}
                     </h2>
                     <div className="flex items-center gap-4">
+                        <PushNotificationToggle user={user} role="admin" compact />
                         <button
                             onClick={() => {
                                 if (activeTab === 'users') fetchUsers()
