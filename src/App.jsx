@@ -57,26 +57,35 @@ function RoleGuard({ children, requiredRole, user, role, loading }) {
 
 // ─── New Order Notification ───────────────────────────────────────────────────
 function NewOrderToast({ order, onDismiss }) {
+  const navigate = useNavigate()
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 8000)
+    const timer = setTimeout(onDismiss, 10000)
     return () => clearTimeout(timer)
   }, [onDismiss])
 
   return (
     <div
-      className="fixed right-4 z-[9999] bg-[#111] border border-[#e5242c]/50 rounded-3xl p-5 shadow-2xl shadow-[#e5242c]/20 animate-in slide-in-from-right duration-500 max-w-md"
-      style={{ top: 'calc(env(safe-area-inset-top) + 12px)' }}
+      className="fixed top-24 right-6 z-[9999] bg-[#111] border-2 border-[#e5242c] rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-right duration-500 max-w-sm"
+      style={{ top: 'calc(env(safe-area-inset-top) + 80px)' }}
     >
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 bg-[#e5242c]/10 rounded-2xl flex items-center justify-center text-[#e5242c] shrink-0 text-2xl">
-          🛵
+        <div className="w-14 h-14 bg-[#e5242c]/10 rounded-2xl flex items-center justify-center text-[#e5242c] shrink-0 text-3xl">
+          🍱
         </div>
         <div className="flex-1">
-          <p className="text-[#e5242c] text-xs font-black uppercase tracking-widest mb-1">Nuevo Pedido</p>
-          <p className="text-white font-bold text-base">{order.client_name}</p>
-          <p className="text-gray-300 text-sm">L {Number(order.total).toFixed(2)} · {order.delivery_type === 'delivery' ? 'Domicilio' : 'Para Llevar'}</p>
+          <p className="text-[#e5242c] text-xs font-black uppercase tracking-widest mb-1">Nuevo pedido recibido</p>
+          <p className="text-white font-bold text-lg mb-1">{order.client_name || 'Nuevo Cliente'}</p>
+          <p className="text-gray-400 text-sm line-clamp-1">{order.items?.length} productos • L {order.total?.toFixed(2)}</p>
         </div>
-        <button onClick={onDismiss} className="text-gray-600 hover:text-white transition-colors text-lg leading-none">×</button>
+        <button onClick={onDismiss} className="text-gray-600 hover:text-white transition-colors text-2xl leading-none">×</button>
+      </div>
+      <div className="mt-4 flex gap-2">
+        <button
+          onClick={() => { navigate('/adminpanel'); onDismiss(); }}
+          className="flex-1 bg-[#e5242c] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#c41e25] transition-all active:scale-95"
+        >
+          Ver en Panel
+        </button>
       </div>
     </div>
   )
@@ -143,9 +152,45 @@ function DeliveredOrderModal({ order, onClose }) {
   )
 }
 
-function App() {
-  const { user, profile, role, loading: authLoading } = useAuth()
-  const [view, setView] = useState('home')
+// ─── Home Component ───────────────────────────────────────────────────────────
+function Home({ setView, menu, menuLoading, user, setShowAuthModal }) {
+  return (
+    <>
+      <Navbar setView={setView} user={user} setShowAuthModal={setShowAuthModal} />
+      <main id="inicio">
+        <Hero setView={setView} />
+        <InfoStrip />
+        {menuLoading ? (
+          <div className="py-24 text-center text-white">Cargando menú...</div>
+        ) : (
+          <Featured setView={setView} menu={menu} />
+        )}
+        <About />
+        <Reviews />
+      </main>
+      <Footer setView={setView} />
+    </>
+  )
+}
+
+export default function App() {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  // Custom setView that uses navigate
+  const setView = (v) => {
+    switch (v) {
+      case 'home': navigate('/'); break;
+      case 'admin': navigate('/adminpanel'); break;
+      case 'delivery': navigate('/deliverypanel'); break;
+      case 'tracking': navigate('/tracking'); break;
+      case 'profile': navigate('/profile'); break;
+      case 'order': navigate('/order'); break;
+      default: navigate('/');
+    }
+  }
+
+  const { user, profile, role, signOut, loading: authLoading } = useAuth()
   const [deliveryType, setDeliveryType] = useState('delivery')
   const [cart, setCart] = useState({})
   const [clientName, setClientName] = useState('')
@@ -176,13 +221,14 @@ function App() {
   // Show Auth Modal on start if not logged in (one-time prompt)
   useEffect(() => {
     const hasPrompted = sessionStorage.getItem('soja_auth_prompted')
-    if (!authLoading && !user && !hasPrompted && view !== 'admin' && view !== 'delivery') {
+    const isSpecialRoute = ['/adminpanel', '/deliverypanel'].includes(pathname)
+    if (!authLoading && !user && !hasPrompted && !isSpecialRoute) {
       setShowAuthModal(true)
       sessionStorage.setItem('soja_auth_prompted', 'true')
-    } else if ((view === 'admin' || view === 'delivery') && showAuthModal) {
+    } else if (isSpecialRoute && showAuthModal) {
       setShowAuthModal(false)
     }
-  }, [user, authLoading, view, showAuthModal])
+  }, [user, authLoading, pathname, showAuthModal])
 
   // Restore active order from localStorage on first load
   useEffect(() => {
@@ -243,20 +289,20 @@ function App() {
     const params = new URLSearchParams(window.location.search)
     if (params.has('adminsoja')) {
       window.history.replaceState({}, '', window.location.pathname)
-      setView('admin')
+      navigate('/adminpanel')
     }
     if (params.has('repartosoja')) {
       window.history.replaceState({}, '', window.location.pathname)
-      setView('delivery')
+      navigate('/deliverypanel')
     }
-  }, [])
+  }, [navigate])
 
   // ─── Auto-redirect based on role ─────────────────────────────────────────
   useEffect(() => {
     const currentRole = role || profile?.role
-    if (currentRole === 'admin') setView('admin')
-    if (currentRole === 'delivery') setView('delivery')
-  }, [role, profile, user])
+    if (currentRole === 'admin' && pathname !== '/adminpanel') navigate('/adminpanel')
+    if (currentRole === 'delivery' && pathname !== '/deliverypanel') navigate('/deliverypanel')
+  }, [role, profile, user, navigate, pathname])
 
   // ─── App Toast Notification Sound ────────────────────────────────────────
   const playToastSound = useCallback((type = 'default') => {
@@ -390,25 +436,9 @@ function App() {
           setActiveOrder(newOrder)
           localStorage.setItem('soja_active_order_id', newOrder.id)
 
-          // Disparar push notification a admins directamente desde el frontend
-          try {
-            const { error: pushError } = await supabase.functions.invoke('push-dispatch', {
-              body: {
-                type: 'INSERT',
-                schema: 'public',
-                table: 'orders',
-                record: newOrder,
-                old_record: null,
-              },
-            })
-            if (pushError) {
-              console.warn('⚠️ push-dispatch invoke error:', pushError)
-            } else {
-              console.log('🔔 push-dispatch invocado OK')
-            }
-          } catch (pushErr) {
-            console.warn('⚠️ push-dispatch fetch error:', pushErr)
-          }
+          console.log('✅ Pedido guardado:', newOrder.id)
+          setActiveOrder(newOrder)
+          localStorage.setItem('soja_active_order_id', newOrder.id)
         }
       } catch (err) {
         console.error('Unexpected error saving order:', err)
@@ -422,7 +452,7 @@ function App() {
   function handleCancelOrder() {
     if (window.confirm('¿Estas seguro que deseas cancelar tu pedido?')) {
       setActiveOrder(null)
-      setView('home')
+      navigate('/')
     }
   }
 
@@ -459,7 +489,7 @@ function App() {
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
 
       {showSuccessModal && (
-        <OrderSuccessModal onClose={() => { setShowSuccessModal(false); setView('home') }} />
+        <OrderSuccessModal onClose={() => { setShowSuccessModal(false); navigate('/') }} />
       )}
 
       {validationMessage && (
@@ -467,9 +497,9 @@ function App() {
       )}
 
       {/* Floating Active Order Button */}
-      {activeOrder && view !== 'tracking' && (
+      {activeOrder && pathname !== '/tracking' && (
         <button
-          onClick={() => setView('tracking')}
+          onClick={() => navigate('/tracking')}
           className="fixed bottom-6 right-6 z-[100] bg-[#e5242c] text-white px-6 py-4 rounded-full font-bold shadow-2xl flex items-center gap-3 hover:scale-105 transition-transform animate-bounce"
         >
           <span className="relative flex h-3 w-3">
@@ -480,60 +510,56 @@ function App() {
         </button>
       )}
 
-      {view === 'tracking' && activeOrder ? (
-        <OrderTracking order={activeOrder} onBack={() => setView('home')} onCancel={handleCancelOrder} />
-      ) : view === 'admin' ? (
-        <RoleGuard requiredRole="admin" user={user} role={role} loading={authLoading}>
-          <Admin setView={setView} />
-        </RoleGuard>
-      ) : view === 'delivery' ? (
-        <RoleGuard requiredRole="delivery" user={user} role={role} loading={authLoading}>
-          <Delivery setView={setView} />
-        </RoleGuard>
-      ) : view === 'profile' ? (
-        <Profile onBack={() => setView('home')} />
-      ) : view === 'order' ? (
-        <Order
-          setView={setView}
-          menu={allItems}
-          loading={menuLoading}
-          cart={cart}
-          updateQty={updateQty}
-          cartItems={cartItems}
-          deliveryType={deliveryType}
-          setDeliveryType={setDeliveryType}
-          subtotal={subtotal}
-          shipping={shipping}
-          total={total}
-          clientName={clientName}
-          setClientName={setClientName}
-          clientPhone={clientPhone}
-          setClientPhone={setClientPhone}
-          handleCheckout={handleCheckout}
-          deliveryLocation={deliveryLocation}
-          setDeliveryLocation={setDeliveryLocation}
-          observations={observations}
-          setObservations={setObservations}
-        />
-      ) : (
-        <>
-          <Navbar setView={setView} user={user} setShowAuthModal={setShowAuthModal} />
-          <main id="inicio">
-            <Hero setView={setView} />
-            <InfoStrip />
-            {menuLoading ? (
-              <div className="py-24 text-center text-white">Cargando menú...</div>
-            ) : (
-              <Featured setView={setView} menu={allItems} />
-            )}
-            <About />
-            <Reviews />
-          </main>
-          <Footer setView={setView} />
-        </>
-      )}
+      <Routes>
+        <Route path="/" element={
+          <Home setView={setView} menu={allItems} menuLoading={menuLoading} user={user} setShowAuthModal={setShowAuthModal} />
+        } />
+        <Route path="/tracking" element={
+          activeOrder ? (
+            <OrderTracking order={activeOrder} onBack={() => navigate('/')} onCancel={handleCancelOrder} />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } />
+        <Route path="/adminpanel" element={
+          <RoleGuard requiredRole="admin" user={user} role={role} loading={authLoading}>
+            <Admin setView={setView} />
+          </RoleGuard>
+        } />
+        <Route path="/deliverypanel" element={
+          <RoleGuard requiredRole="delivery" user={user} role={role} loading={authLoading}>
+            <Delivery setView={setView} />
+          </RoleGuard>
+        } />
+        <Route path="/profile" element={
+          <Profile onBack={() => navigate('/')} />
+        } />
+        <Route path="/order" element={
+          <Order
+            setView={setView}
+            menu={allItems}
+            loading={menuLoading}
+            cart={cart}
+            updateQty={updateQty}
+            cartItems={cartItems}
+            deliveryType={deliveryType}
+            setDeliveryType={setDeliveryType}
+            subtotal={subtotal}
+            shipping={shipping}
+            total={total}
+            clientName={clientName}
+            setClientName={setClientName}
+            clientPhone={clientPhone}
+            setClientPhone={setClientPhone}
+            handleCheckout={handleCheckout}
+            deliveryLocation={deliveryLocation}
+            setDeliveryLocation={setDeliveryLocation}
+            observations={observations}
+            setObservations={setObservations}
+          />
+        } />
+        <Route path="*" element={<Navigate to="/" replace />} /> {/* Catch-all for unknown routes */}
+      </Routes>
     </div>
   )
 }
-
-export default App

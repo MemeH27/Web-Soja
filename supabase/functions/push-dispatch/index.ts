@@ -65,7 +65,7 @@ function statusLabel(status: string | null | undefined) {
   }
 }
 
-function buildNotifications(
+async function buildNotifications(
   eventType: string,
   record: OrderRow | null,
   oldRecord: OrderRow | null
@@ -89,34 +89,47 @@ function buildNotifications(
       userIds: [],
       title: 'Nuevo pedido',
       body: `${record.client_name || 'Cliente'} realizó un pedido (#${orderCode}).`,
-      url: '/?adminsoja',
+      url: '/adminpanel',
       tag: `order-insert-${record.id}`,
     })
   }
 
   if (eventType === 'UPDATE') {
+    // Si se asigna un repartidor
     if (record.delivery_id && oldRecord?.delivery_id !== record.delivery_id) {
       jobs.push({
         target: 'delivery',
         userIds: [record.delivery_id],
         title: 'Pedido asignado',
         body: `Se te asignó el pedido #${orderCode}.`,
-        url: '/?repartosoja',
+        url: '/deliverypanel',
         tag: `delivery-assigned-${record.id}`,
       })
     }
 
+    // Si cambia el estado
     if (record.user_id && oldRecord?.status !== record.status) {
       let body = `Tu pedido #${orderCode} está ${statusLabel(record.status)}.`
 
       if (record.status === 'delivered') {
-        body = `¡Tu pedido #${orderCode} ha sido entregado! Gracias por confiar en nosotros, ¡que tengas buen provecho! 🥢🍣`
+        body = `¡Tu pedido #${orderCode} ha sido entregado! Gracias por confiar en nosotros. ¡Buen provecho y gracias por comprar con SOJA! 🥢🍣`
       } else if (record.status === 'ready') {
-        body = `¡Buenas noticias! Tu pedido #${orderCode} ya está listo.`
+        body = `¡Buenas noticias! Tu pedido #${orderCode} ya está listo y empaquetado. ✨`
       } else if (record.status === 'cooking') {
-        body = `¡Manos a la obra! Tu pedido #${orderCode} ya se está cocinando. 👨‍🍳`
+        body = `¡Manos a la obra! Tu pedido #${orderCode} ya se entró a cocina. 👨‍🍳🔥`
       } else if (record.status === 'shipped') {
-        body = `¡Tu pedido #${orderCode} va en camino! Prepárate para recibirlo. 🛵`
+        let deliveryName = 'El repartidor'
+        if (record.delivery_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name')
+            .eq('id', record.delivery_id)
+            .single()
+          if (profile?.first_name) {
+            deliveryName = profile.first_name
+          }
+        }
+        body = `¡${deliveryName} va en camino con tu pedido #${orderCode}! Prepárate para recibirlo. 🛵`
       }
 
       jobs.push({
@@ -124,7 +137,7 @@ function buildNotifications(
         userIds: [record.user_id],
         title: 'Actualización de tu pedido',
         body,
-        url: '/',
+        url: '/tracking',
         tag: `order-status-${record.id}-${record.status}`,
       })
     }
@@ -171,7 +184,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ ok: true, skipped: 'No order record in payload' })
   }
 
-  const jobs = buildNotifications(eventType, record, oldRecord)
+  const jobs = await buildNotifications(eventType, record, oldRecord)
   if (jobs.length === 0) {
     return jsonResponse({ ok: true, skipped: 'No push jobs for this event' })
   }

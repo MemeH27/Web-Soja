@@ -523,21 +523,6 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate, onTrack }) {
         }
 
         onUpdate()
-
-        // Notificar push al usuario del pedido
-        try {
-            await supabase.functions.invoke('push-dispatch', {
-                body: {
-                    type: 'UPDATE',
-                    schema: 'public',
-                    table: 'orders',
-                    record: updatedOrder,
-                    old_record: oldOrder,
-                },
-            })
-        } catch (pushErr) {
-            console.warn('⚠️ push-dispatch (updateOrderStatus) error:', pushErr)
-        }
     }
 
     const assignDelivery = async (orderId, deliveryId) => {
@@ -556,21 +541,6 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate, onTrack }) {
         }
 
         onUpdate()
-
-        // Notificar push al repartidor y al usuario del pedido
-        try {
-            await supabase.functions.invoke('push-dispatch', {
-                body: {
-                    type: 'UPDATE',
-                    schema: 'public',
-                    table: 'orders',
-                    record: updatedOrder,
-                    old_record: oldOrder,
-                },
-            })
-        } catch (pushErr) {
-            console.warn('⚠️ push-dispatch (assignDelivery) error:', pushErr)
-        }
     }
 
     const deleteOrder = async (orderId) => {

@@ -76,7 +76,7 @@ export default function OrderTracking({ order, onBack, onCancel, isAdmin = false
     const [deliveryStaff, setDeliveryStaff] = useState(null)
 
     const destination = order.location ? [order.location.lat, order.location.lng] : [14.780, -88.785]
-    const steps = ['Confirmado', 'Cocinando', 'En camino', 'Entregado']
+    const steps = ['Confirmado', 'En Cocina', 'Preparado', 'En camino', 'Entregado']
 
     // Fetch Route
     useEffect(() => {
@@ -101,7 +101,14 @@ export default function OrderTracking({ order, onBack, onCancel, isAdmin = false
 
     // Map status string to step index
     useEffect(() => {
-        const statusMap = { 'pending': 0, 'prepared': 1, 'shipped': 2, 'delivered': 3 }
+        const statusMap = {
+            'pending': 0,
+            'cooking': 1,
+            'ready': 2,
+            'prepared': 2, // Retrocompatibility
+            'shipped': 3,
+            'delivered': 4
+        }
         setStatusStep(statusMap[order.status] || 0)
     }, [order.status])
 
@@ -202,9 +209,10 @@ export default function OrderTracking({ order, onBack, onCancel, isAdmin = false
                         <div className="flex items-center gap-2">
                             <p className="text-[#e5242c] text-sm font-bold uppercase tracking-wider">
                                 {order.status === 'pending' ? 'Esperando confirmación' :
-                                    order.status === 'prepared' ? 'Preparando tu comida' :
-                                        order.status === 'shipped' ? '¡El repartidor va en camino!' :
-                                            '¡Disfruta tu comida!'}
+                                    order.status === 'cooking' ? '¡Tu pedido entró a cocina!' :
+                                        order.status === 'ready' || order.status === 'prepared' ? 'Pedido listo para entrega' :
+                                            order.status === 'shipped' ? '¡El repartidor va en camino!' :
+                                                '¡Disfruta tu comida!'}
                             </p>
                             <div className="w-2 h-2 rounded-full bg-[#e5242c] animate-pulse" />
                         </div>
@@ -227,8 +235,9 @@ export default function OrderTracking({ order, onBack, onCancel, isAdmin = false
                             let icon = <div className="w-2 h-2 rounded-full bg-white" />
                             if (index === 0) icon = <FaCheck className="text-xs" />
                             if (index === 1) icon = <FaFireBurner className="text-xs" />
-                            if (index === 2) icon = <FaMotorcycle className="text-xs" />
-                            if (index === 3) icon = <FaHouse className="text-xs" />
+                            if (index === 2) icon = <div className="text-xs font-black">OK</div>
+                            if (index === 3) icon = <FaMotorcycle className="text-xs" />
+                            if (index === 4) icon = <FaHouse className="text-xs" />
 
                             return (
                                 <div key={step} className={`relative flex items-center gap-4 transition-all duration-500 ${index <= statusStep ? 'opacity-100' : 'opacity-30'}`}>

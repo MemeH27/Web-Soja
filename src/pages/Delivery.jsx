@@ -183,21 +183,6 @@ export default function Delivery({ setView }) {
         if (newStatus !== 'delivered') {
             fetchAssignedOrders()
         }
-
-        // Notificar push al usuario del pedido
-        try {
-            await supabase.functions.invoke('push-dispatch', {
-                body: {
-                    type: 'UPDATE',
-                    schema: 'public',
-                    table: 'orders',
-                    record: updatedOrder,
-                    old_record: oldOrder,
-                },
-            })
-        } catch (pushErr) {
-            console.warn('⚠️ push-dispatch (updateStatus) error:', pushErr)
-        }
     }
 
     const startTracking = () => {
