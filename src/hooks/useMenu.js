@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-export function useMenu() {
+export function useMenu({ adminMode = false } = {}) {
     const [menu, setMenu] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -15,7 +15,9 @@ export function useMenu() {
 
                 if (error) throw error
 
-                setMenu(data || [])
+                const allProducts = data || []
+                // In admin mode, show all products. In customer mode, filter out unavailable ones.
+                setMenu(adminMode ? allProducts : allProducts.filter(p => p.available !== false))
             } catch (err) {
                 console.error('Error fetching menu:', err)
                 setError(err.message)
@@ -25,7 +27,7 @@ export function useMenu() {
         }
 
         fetchMenu()
-    }, [])
+    }, [adminMode])
 
     return { menu, loading, error, setMenu }
 }

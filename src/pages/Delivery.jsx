@@ -497,6 +497,16 @@ function OrderDetailsModal({ order, onClose }) {
                                     <FaMapMarkerAlt /> Abrir en Google Maps
                                 </a>
                             )}
+                            {order.client_phone && (
+                                <a
+                                    href={`https://wa.me/504${order.client_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola ${order.client_name}! 🛵 Soy tu repartidor de SOJA, ya estoy en camino con tu pedido. ¡Llegaré en unos minutos!`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-[#1da851] transition-all shadow-lg text-sm uppercase tracking-widest active:scale-95"
+                                >
+                                    <FaPhone /> Avisar "Estoy Llegando" por WhatsApp
+                                </a>
+                            )}
                         </div>
                     </div>
 

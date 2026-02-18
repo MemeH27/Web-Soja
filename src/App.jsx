@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useEffect } from 'react'
+﻿import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
@@ -20,6 +20,65 @@ import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 import Delivery from './pages/Delivery'
 
+// ─── Role Guard Component ─────────────────────────────────────────────────────
+function RoleGuard({ children, requiredRole, user, role, loading }) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#e5242c] border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-gray-500 animate-pulse font-bold tracking-widest uppercase text-xs">Verificando Credenciales...</p>
+      </div>
+    )
+  }
+
+  // For delivery: must be logged in with delivery role
+  if (requiredRole === 'delivery') {
+    // Delivery page handles its own login flow, so we just render it
+    return children
+  }
+
+  // For admin: must be logged in with admin role
+  if (requiredRole === 'admin') {
+    if (!user || role !== 'admin') {
+      console.warn(`⛔ Acceso denegado: rol '${role}' intentó acceder al panel de admin`)
+      return (
+        <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center gap-4">
+          <div className="text-6xl">🔒</div>
+          <h1 className="text-2xl font-black uppercase tracking-widest">Acceso Denegado</h1>
+          <p className="text-gray-500 text-sm">No tienes permisos para ver esta sección.</p>
+        </div>
+      )
+    }
+    return children
+  }
+
+  return children
+}
+
+// ─── New Order Notification ───────────────────────────────────────────────────
+function NewOrderToast({ order, onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 8000)
+    return () => clearTimeout(timer)
+  }, [onDismiss])
+
+  return (
+    <div className="fixed top-4 right-4 z-[9999] bg-[#111] border border-[#e5242c]/50 rounded-2xl p-4 shadow-2xl shadow-[#e5242c]/20 animate-in slide-in-from-right duration-500 max-w-sm">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-[#e5242c]/10 rounded-xl flex items-center justify-center text-[#e5242c] shrink-0 text-xl">
+          🛵
+        </div>
+        <div className="flex-1">
+          <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-widest mb-1">¡Nuevo Pedido!</p>
+          <p className="text-white font-bold text-sm">{order.client_name}</p>
+          <p className="text-gray-400 text-xs">L {Number(order.total).toFixed(2)} · {order.delivery_type === 'delivery' ? 'Domicilio' : 'Para Llevar'}</p>
+        </div>
+        <button onClick={onDismiss} className="text-gray-600 hover:text-white transition-colors text-lg leading-none">×</button>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const { user, profile, role, loading: authLoading } = useAuth()
   const [view, setView] = useState('home')
@@ -32,9 +91,10 @@ function App() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [validationMessage, setValidationMessage] = useState(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
-
-  // New: Persistent Active Order State
   const [activeOrder, setActiveOrder] = useState(null)
+  const [newOrderToast, setNewOrderToast] = useState(null)
+  const audioRef = useRef(null)
+  const notifSubRef = useRef(null)
 
   const { menu: allItems, loading: menuLoading } = useMenu()
 
@@ -50,17 +110,15 @@ function App() {
   // Show Auth Modal on start if not logged in (one-time prompt)
   useEffect(() => {
     const hasPrompted = sessionStorage.getItem('soja_auth_prompted')
-    // No pedir login si ya estamos en rutas de administración o reparto
     if (!authLoading && !user && !hasPrompted && view !== 'admin' && view !== 'delivery') {
       setShowAuthModal(true)
       sessionStorage.setItem('soja_auth_prompted', 'true')
     } else if ((view === 'admin' || view === 'delivery') && showAuthModal) {
-      // Forzar cierre si saltamos a estas rutas
       setShowAuthModal(false)
     }
   }, [user, authLoading, view, showAuthModal])
 
-  // New: Restore active order from localStorage
+  // Restore active order from localStorage
   useEffect(() => {
     const savedOrderId = localStorage.getItem('soja_active_order_id')
     if (savedOrderId && !activeOrder) {
@@ -79,7 +137,6 @@ function App() {
       }
       fetchActiveOrder()
 
-      // Subscribe to changes in this order
       const sub = supabase
         .channel('active_order_tracking')
         .on('postgres_changes', {
@@ -93,48 +150,77 @@ function App() {
             setTimeout(() => {
               localStorage.removeItem('soja_active_order_id')
               setActiveOrder(null)
-            }, 10000) // Clear after 10s of being delivered
+            }, 10000)
           }
         })
         .subscribe()
 
-      return () => {
-        supabase.removeChannel(sub)
-      }
+      return () => { supabase.removeChannel(sub) }
     }
   }, [])
 
-  // Effect to handle secret route detection
+  // ─── Secret route detection (kept for backwards compat) ───────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.has('adminsoja')) {
-      console.log('Secret route detected: adminsoja')
-      const newUrl = window.location.pathname
-      window.history.replaceState({}, '', newUrl)
+      window.history.replaceState({}, '', window.location.pathname)
       setView('admin')
     }
     if (params.has('repartosoja')) {
-      console.log('Secret route detected: repartosoja')
-      const newUrl = window.location.pathname
-      window.history.replaceState({}, '', newUrl)
+      window.history.replaceState({}, '', window.location.pathname)
       setView('delivery')
     }
   }, [])
 
-  // Effect to handle initial view based on role
+  // ─── Auto-redirect based on role ─────────────────────────────────────────
   useEffect(() => {
     const currentRole = role || profile?.role
-    console.log('App render - User:', user?.email, 'Role check:', currentRole)
-    if (currentRole === 'admin') {
-      console.log('Admin detectado, redireccionando...')
-      setView('admin')
-    }
-    if (currentRole === 'delivery') {
-      console.log('Repartidor detectado, redireccionando...')
-      setView('delivery')
-    }
+    if (currentRole === 'admin') setView('admin')
+    if (currentRole === 'delivery') setView('delivery')
   }, [role, profile, user])
 
+  // ─── Admin Real-Time Notifications ───────────────────────────────────────
+  const playNotificationSound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime)
+      oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.1)
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.2)
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
+      oscillator.start(ctx.currentTime)
+      oscillator.stop(ctx.currentTime + 0.5)
+    } catch (e) {
+      console.log('Audio notification not available')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (role !== 'admin') return
+
+    // Subscribe to new orders for admin notifications
+    const sub = supabase
+      .channel('admin_new_orders')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'orders'
+      }, (payload) => {
+        console.log('🔔 Nuevo pedido recibido:', payload.new)
+        setNewOrderToast(payload.new)
+        playNotificationSound()
+      })
+      .subscribe()
+
+    notifSubRef.current = sub
+    return () => { supabase.removeChannel(sub) }
+  }, [role, playNotificationSound])
+
+  // ─── Cart & Checkout ──────────────────────────────────────────────────────
   const subtotal = useMemo(() => {
     return allItems.reduce((acc, item) => acc + (cart[item.id] || 0) * item.price, 0)
   }, [allItems, cart])
@@ -156,24 +242,10 @@ function App() {
   }
 
   function handleCheckout(paymentDetails) {
-    // Guest checkout allowed
-
-    if (subtotal <= 0) {
-      setValidationMessage('Agrega al menos un producto al carrito.')
-      return
-    }
-    if (!clientName.trim()) {
-      setValidationMessage('Escribe tu nombre para continuar.')
-      return
-    }
-    if (!clientPhone.trim()) {
-      setValidationMessage('Escribe tu telefono para continuar.')
-      return
-    }
-    if (deliveryType === 'delivery' && !deliveryLocation) {
-      setValidationMessage('Por favor selecciona tu ubicacion en el mapa.')
-      return
-    }
+    if (subtotal <= 0) { setValidationMessage('Agrega al menos un producto al carrito.'); return }
+    if (!clientName.trim()) { setValidationMessage('Escribe tu nombre para continuar.'); return }
+    if (!clientPhone.trim()) { setValidationMessage('Escribe tu telefono para continuar.'); return }
+    if (deliveryType === 'delivery' && !deliveryLocation) { setValidationMessage('Por favor selecciona tu ubicacion en el mapa.'); return }
 
     let message = `*NUEVO PEDIDO - SOJA*\n\n`
     message += `*Cliente:* ${clientName}\n`
@@ -185,35 +257,26 @@ function App() {
       message += `*Ubicación:* ${mapLink}\n`
     }
 
-    if (observations) {
-      message += `*Observaciones:* ${observations}\n`
-    }
+    if (observations) message += `*Observaciones:* ${observations}\n`
 
     message += `\n*DETALLE DEL PEDIDO:*\n`
-    cartItems.forEach(item => {
-      message += `- ${item.qty}x ${item.name} (${formatHNL(item.total)})\n`
-    })
-
+    cartItems.forEach(item => { message += `- ${item.qty}x ${item.name} (${formatHNL(item.total)})\n` })
     message += `\n*Subtotal:* ${formatHNL(subtotal)}\n`
     message += `*Envío:* ${formatHNL(shipping)}\n`
     message += `*TOTAL:* ${formatHNL(total)}\n`
 
-    if (paymentDetails) {
-      if (paymentDetails.method === 'cash') {
-        message += `\n*Pago:* Efectivo\n`
-        if (paymentDetails.change > 0) {
-          message += `*Paga con:* ${formatHNL(paymentDetails.amount)}\n`
-          message += `*Cambio a enviar:* ${formatHNL(paymentDetails.change)}\n`
-        } else {
-          message += `*Paga con:* Efectivo Exacto\n`
-        }
+    if (paymentDetails?.method === 'cash') {
+      message += `\n*Pago:* Efectivo\n`
+      if (paymentDetails.change > 0) {
+        message += `*Paga con:* ${formatHNL(paymentDetails.amount)}\n`
+        message += `*Cambio a enviar:* ${formatHNL(paymentDetails.change)}\n`
+      } else {
+        message += `*Paga con:* Efectivo Exacto\n`
       }
     }
 
-    const whatsappUrl = `https://wa.me/50433135869?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, '_blank')
+    window.open(`https://wa.me/50433135869?text=${encodeURIComponent(message)}`, '_blank')
 
-    // Save to Supabase
     const saveOrder = async () => {
       try {
         const { data: newOrder, error: orderError } = await supabase
@@ -223,12 +286,12 @@ function App() {
             client_name: clientName,
             client_phone: clientPhone,
             items: cartItems,
-            subtotal: subtotal,
-            shipping: shipping,
-            total: total,
+            subtotal,
+            shipping,
+            total,
             delivery_type: deliveryType,
             location: deliveryLocation,
-            observations: observations,
+            observations,
             status: 'pending'
           })
           .select()
@@ -246,7 +309,6 @@ function App() {
       }
     }
     saveOrder()
-
     setCart({})
     setShowSuccessModal(true)
   }
@@ -258,85 +320,61 @@ function App() {
     }
   }
 
-  function handleReset() {
-    setView('home')
-  }
+  function formatHNL(value) { return `L ${value.toFixed(2)}` }
 
-  function formatHNL(value) {
-    return `L ${value.toFixed(2)}`
-  }
-
-  if (authLoading) return <div className="min-h-screen bg-black flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#e5242c] border-t-transparent rounded-full animate-spin"></div></div>
+  if (authLoading) return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-[#e5242c] border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div className="site-shell relative">
+      {/* Admin New Order Toast */}
+      {newOrderToast && role === 'admin' && (
+        <NewOrderToast
+          order={newOrderToast}
+          onDismiss={() => setNewOrderToast(null)}
+        />
+      )}
+
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
 
-      {/* Success Modal */}
       {showSuccessModal && (
-        <OrderSuccessModal
-          onClose={() => {
-            setShowSuccessModal(false)
-            setView('home')
-          }}
-        />
+        <OrderSuccessModal onClose={() => { setShowSuccessModal(false); setView('home') }} />
       )}
 
-      {/* Validation Modal */}
       {validationMessage && (
-        <ValidationModal
-          message={validationMessage}
-          onClose={() => setValidationMessage(null)}
-        />
+        <ValidationModal message={validationMessage} onClose={() => setValidationMessage(null)} />
       )}
 
-      {/* Floating Button for Active Order */}
+      {/* Floating Active Order Button */}
       {activeOrder && view !== 'tracking' && (
         <button
           onClick={() => setView('tracking')}
           className="fixed bottom-6 right-6 z-[100] bg-[#e5242c] text-white px-6 py-4 rounded-full font-bold shadow-2xl flex items-center gap-3 hover:scale-105 transition-transform animate-bounce"
         >
           <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-white" />
           </span>
           Ver Pedido en Curso
         </button>
       )}
 
       {view === 'tracking' && activeOrder ? (
-        <OrderTracking
-          order={activeOrder}
-          onBack={handleReset}
-          onCancel={handleCancelOrder}
-        />
-      ) : view === 'home' ? (
-        <>
-          <Navbar
-            setView={setView}
-            user={user}
-            setShowAuthModal={setShowAuthModal}
-          />
-          <main id="inicio">
-            <Hero setView={setView} />
-            <InfoStrip />
-            {menuLoading ? (
-              <div className="py-24 text-center text-white">Cargando menú...</div>
-            ) : (
-              <Featured setView={setView} menu={allItems} />
-            )}
-            <About />
-            <Reviews />
-          </main>
-          <Footer setView={setView} />
-        </>
+        <OrderTracking order={activeOrder} onBack={() => setView('home')} onCancel={handleCancelOrder} />
       ) : view === 'admin' ? (
-        <Admin setView={setView} />
+        <RoleGuard requiredRole="admin" user={user} role={role} loading={authLoading}>
+          <Admin setView={setView} />
+        </RoleGuard>
       ) : view === 'delivery' ? (
-        <Delivery setView={setView} />
+        <RoleGuard requiredRole="delivery" user={user} role={role} loading={authLoading}>
+          <Delivery setView={setView} />
+        </RoleGuard>
       ) : view === 'profile' ? (
         <Profile onBack={() => setView('home')} />
-      ) : (
+      ) : view === 'order' ? (
         <Order
           setView={setView}
           menu={allItems}
@@ -359,6 +397,22 @@ function App() {
           observations={observations}
           setObservations={setObservations}
         />
+      ) : (
+        <>
+          <Navbar setView={setView} user={user} setShowAuthModal={setShowAuthModal} />
+          <main id="inicio">
+            <Hero setView={setView} />
+            <InfoStrip />
+            {menuLoading ? (
+              <div className="py-24 text-center text-white">Cargando menú...</div>
+            ) : (
+              <Featured setView={setView} menu={allItems} />
+            )}
+            <About />
+            <Reviews />
+          </main>
+          <Footer setView={setView} />
+        </>
       )}
     </div>
   )

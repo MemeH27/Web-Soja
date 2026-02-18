@@ -42,7 +42,7 @@ export default function Admin({ setView }) {
         )
     }
     const [activeTab, setActiveTab] = useState('products')
-    const { menu, loading: menuLoading, setMenu } = useMenu()
+    const { menu, loading: menuLoading, setMenu } = useMenu({ adminMode: true })
     const { reviews, loading: reviewsLoading, setReviews } = useReviews()
     const [usersList, setUsersList] = useState([])
     const [ordersList, setOrdersList] = useState([])
@@ -123,6 +123,17 @@ export default function Admin({ setView }) {
         const { error } = await supabase.from('reviews').delete().eq('id', id)
         if (error) alert(error.message)
         else setReviews(reviews.filter(r => r.id !== id))
+    }
+
+    const handleToggleStock = async (product) => {
+        const newAvailable = !product.available
+        const { error } = await supabase
+            .from('products')
+            .update({ available: newAvailable })
+            .eq('id', product.id)
+        if (!error) {
+            setMenu(menu.map(p => p.id === product.id ? { ...p, available: newAvailable } : p))
+        }
     }
 
     return (
@@ -233,7 +244,7 @@ export default function Admin({ setView }) {
                 </header>
 
                 {activeTab === 'products' ? (
-                    <ProductsList products={menu} loading={menuLoading} onDelete={handleDeleteProduct} onEdit={(p) => { setEditingProduct(p); setShowProductModal(true); }} />
+                    <ProductsList products={menu} loading={menuLoading} onDelete={handleDeleteProduct} onEdit={(p) => { setEditingProduct(p); setShowProductModal(true); }} onToggleStock={handleToggleStock} />
                 ) : activeTab === 'orders' ? (
                     <OrdersList orders={ordersList} loading={loadingOrders} deliveryUsers={deliveryUsers} onUpdate={fetchOrders} />
                 ) : activeTab === 'users' ? (
@@ -260,20 +271,39 @@ export default function Admin({ setView }) {
     )
 }
 
-function ProductsList({ products, loading, onDelete, onEdit }) {
+function ProductsList({ products, loading, onDelete, onEdit, onToggleStock }) {
     if (loading) return <div>Cargando productos...</div>
 
     return (
         <div className="grid gap-4">
             {products.map(product => (
-                <div key={product.id} className="bg-[#111] border border-white/5 p-4 rounded-2xl flex items-center gap-6 group hover:border-white/20 transition-colors">
-                    <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded-lg" />
+                <div key={product.id} className={`bg-[#111] border p-4 rounded-2xl flex items-center gap-6 group transition-colors ${product.available === false ? 'border-red-500/30 opacity-60' : 'border-white/5 hover:border-white/20'}`}>
+                    <div className="relative">
+                        <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded-lg" />
+                        {product.available === false && (
+                            <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
+                                <span className="text-red-400 text-[10px] font-black uppercase">Agotado</span>
+                            </div>
+                        )}
+                    </div>
                     <div className="flex-1">
                         <h4 className="font-bold text-lg">{product.name}</h4>
                         <p className="text-gray-500 text-sm italic capitalize">{product.category}</p>
                     </div>
                     <div className="font-bold text-xl text-[#e5242c]">L {product.price}</div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        {/* Stock Toggle */}
+                        <button
+                            onClick={() => onToggleStock(product)}
+                            title={product.available === false ? 'Marcar como disponible' : 'Marcar como agotado'}
+                            className={`relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none ${product.available === false ? 'bg-red-500/30' : 'bg-green-500/30'
+                                }`}
+                        >
+                            <span className={`absolute top-1 w-4 h-4 rounded-full transition-all duration-300 ${product.available === false
+                                ? 'left-1 bg-red-400'
+                                : 'left-7 bg-green-400'
+                                }`} />
+                        </button>
                         <button
                             onClick={() => onEdit(product)}
                             className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-blue-400 transition-all active:scale-95"
