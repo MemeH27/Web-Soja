@@ -448,7 +448,10 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <h4 className="font-bold text-xl text-white">{order.client_name}</h4>
+                                <h4 className="font-bold text-xl text-white">
+                                    {order.client_name || `Invitado #${order.id.slice(0, 4).toUpperCase()}`}
+                                </h4>
+                                {!order.user_id && <span className="bg-white/5 text-[8px] text-gray-500 px-2 py-0.5 rounded font-black uppercase tracking-widest">Anónimo</span>}
                                 <span className={`text-[10px] uppercase font-black px-3 py-1 rounded-full ${order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
                                     order.status === 'delivered' ? 'bg-green-500/10 text-green-500' :
                                         'bg-blue-500/10 text-blue-500'
@@ -498,14 +501,14 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
                                                 className="fixed inset-0 z-[60]"
                                                 onClick={() => setOpenDropdownId(null)}
                                             />
-                                            <div className="absolute bottom-full md:top-full mb-2 md:mb-0 md:mt-2 left-0 right-0 bg-[#0c0c0c] border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-[70] animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="absolute top-full mt-2 left-0 right-0 bg-[#0c0c0c] border border-white/10 rounded-2xl overflow-visible shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[70] animate-in fade-in slide-in-from-top-2 duration-200 min-w-[200px]">
                                                 <div
                                                     onClick={() => { assignDelivery(order.id, null); setOpenDropdownId(null); }}
-                                                    className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 hover:bg-white/5 cursor-pointer border-b border-white/5 transition-colors"
+                                                    className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 hover:bg-white/5 cursor-pointer border-b border-white/10 transition-colors first:rounded-t-2xl"
                                                 >
                                                     Sin Asignar
                                                 </div>
-                                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                <div className="max-h-60 overflow-y-auto custom-scrollbar">
                                                     {deliveryUsers.map(u => (
                                                         <div
                                                             key={u.id}
@@ -513,7 +516,7 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
                                                                 assignDelivery(order.id, u.id)
                                                                 setOpenDropdownId(null)
                                                             }}
-                                                            className={`px-6 py-4 text-xs font-bold transition-all cursor-pointer flex items-center justify-between group/item
+                                                            className={`px-6 py-4 text-xs font-bold transition-all cursor-pointer flex items-center justify-between group/item border-b border-white/5 last:border-0
                                                                 ${order.delivery_id === u.id ? 'bg-[#e5242c] text-white' : 'text-gray-300 hover:bg-[#e5242c]/10 hover:text-white'}
                                                             `}
                                                         >

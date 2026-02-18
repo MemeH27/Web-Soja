@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-
 import { FaCheck, FaFireBurner, FaMotorcycle, FaHouse, FaChevronDown, FaChevronUp, FaBan, FaMoneyBillWave } from 'react-icons/fa6'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { supabase } from '../supabaseClient'
 
 // SOJA Location 
 const RESTAURANT_POS = [14.775, -88.779]
@@ -42,8 +43,8 @@ export default function OrderTracking({ order, onBack, onCancel }) {
     const [statusStep, setStatusStep] = useState(0)
     const [motoPos, setMotoPos] = useState(RESTAURANT_POS)
     const [routeCoords, setRouteCoords] = useState([])
-    const [timeLeft, setTimeLeft] = useState(120) // 120s / 2mins
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+    const [deliveryStaff, setDeliveryStaff] = useState(null)
 
     const destination = order.location ? [order.location.lat, order.location.lng] : [14.780, -88.785]
     const steps = ['Confirmado', 'Cocinando', 'En camino', 'Entregado']
@@ -69,36 +70,51 @@ export default function OrderTracking({ order, onBack, onCancel }) {
         fetchRoute()
     }, [destination])
 
-    // Animation
+    // Map status string to step index
     useEffect(() => {
-        const totalDuration = 120000 // 2 minutes
-        const intervalTime = 100
-        const startTime = Date.now()
+        const statusMap = { 'pending': 0, 'prepared': 1, 'shipped': 2, 'delivered': 3 }
+        setStatusStep(statusMap[order.status] || 0)
+    }, [order.status])
 
-        const timer = setInterval(() => {
-            const elapsed = Date.now() - startTime
-            const progress = Math.min(elapsed / totalDuration, 1)
-
-            setTimeLeft(Math.ceil((totalDuration - elapsed) / 1000))
-
-            if (progress < 0.2) setStatusStep(0)
-            else if (progress < 0.4) setStatusStep(1)
-            else if (progress < 0.95) setStatusStep(2)
-            else setStatusStep(3)
-
-            if (progress >= 0.4 && progress < 0.95 && routeCoords.length > 0) {
-                const travelProgress = (progress - 0.4) / 0.55
-                const index = Math.floor(travelProgress * (routeCoords.length - 1))
-                if (routeCoords[index]) setMotoPos(routeCoords[index])
-            } else if (progress >= 0.95) {
-                setMotoPos(destination)
+    // Subscription for delivery staff location
+    useEffect(() => {
+        if (order.delivery_id) {
+            const fetchStaff = async () => {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', order.delivery_id)
+                    .single()
+                if (data) {
+                    setDeliveryStaff(data)
+                    if (data.last_lat && data.last_lng) {
+                        setMotoPos([data.last_lat, data.last_lng])
+                    }
+                }
             }
+            fetchStaff()
 
-            if (progress >= 1) clearInterval(timer)
-        }, intervalTime)
+            const sub = supabase
+                .channel(`delivery_tracking_${order.id}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${order.delivery_id}`
+                }, (payload) => {
+                    const { last_lat, last_lng } = payload.new
+                    if (last_lat && last_lng) {
+                        setMotoPos([last_lat, last_lng])
+                    }
+                    setDeliveryStaff(payload.new)
+                })
+                .subscribe()
 
-        return () => clearInterval(timer)
-    }, [destination, routeCoords])
+            return () => {
+                supabase.removeChannel(sub)
+            }
+        }
+    }, [order.delivery_id])
 
     return (
         <div className="fixed inset-0 z-50 bg-[#0f0f0f] flex flex-col md:flex-row font-sans h-[100dvh]">
@@ -155,9 +171,19 @@ export default function OrderTracking({ order, onBack, onCancel }) {
 
                         <h2 className="text-xl md:text-2xl font-black text-white mb-1">Pedido en curso</h2>
                         <div className="flex items-center gap-2">
-                            <p className="text-[#e5242c] text-sm font-bold">Llega en: {Math.max(0, Math.ceil(timeLeft / 60))} min</p>
+                            <p className="text-[#e5242c] text-sm font-bold uppercase tracking-wider">
+                                {order.status === 'pending' ? 'Esperando confirmación' :
+                                    order.status === 'prepared' ? 'Preparando tu comida' :
+                                        order.status === 'shipped' ? '¡El repartidor va en camino!' :
+                                            '¡Disfruta tu comida!'}
+                            </p>
                             <div className="w-2 h-2 rounded-full bg-[#e5242c] animate-pulse" />
                         </div>
+                        {deliveryStaff && order.status === 'shipped' && (
+                            <p className="text-[10px] text-gray-400 mt-2 uppercase font-black tracking-widest bg-white/5 py-1 px-3 rounded-full w-fit">
+                                Repartidor: {deliveryStaff.first_name}
+                            </p>
+                        )}
 
                     </div>
                 </div>
@@ -218,8 +244,8 @@ export default function OrderTracking({ order, onBack, onCancel }) {
                         <div className="bg-[#222] rounded-xl p-3 border border-[#333] space-y-2">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <p className="text-white font-bold text-sm">{order.clientName}</p>
-                                    <p className="text-gray-400 text-xs">{order.clientPhone}</p>
+                                    <p className="text-white font-bold text-sm">{order.client_name || 'Cliente'}</p>
+                                    <p className="text-gray-400 text-xs">{order.client_phone}</p>
                                 </div>
                                 <span className="text-[#e5242c] font-black text-xl">L {order.total.toFixed(2)}</span>
                             </div>

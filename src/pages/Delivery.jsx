@@ -6,13 +6,37 @@ import { useAuth } from '../hooks/useAuth.jsx'
 export default function Delivery({ setView }) {
     const { profile, signOut, user, loading: authLoading, signInWithCode, registerStaff } = useAuth()
     const [orders, setOrders] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [view, setLocalView] = useState('login') // 'login', 'register', 'showCode'
+    const [isOrdersLoading, setIsOrdersLoading] = useState(false)
+    const [isLoggingIn, setIsLoggingIn] = useState(false)
+    const [deliveryView, setDeliveryView] = useState('login')
     const [accessCode, setAccessCode] = useState('')
     const [newStaffData, setNewStaffData] = useState({ firstName: '', lastName: '', phone: '' })
     const [generatedCode, setGeneratedCode] = useState('')
     const [selectedOrder, setSelectedOrder] = useState(null)
     const [isRefreshing, setIsRefreshing] = useState(false)
+    const [watchId, setWatchId] = useState(null)
+
+    useEffect(() => {
+        console.log('📦 Delivery Render:', {
+            hasUser: !!user,
+            hasProfile: !!profile,
+            authLoading,
+            isLoggingIn,
+            accessCodeLen: accessCode.length
+        })
+    }, [user, profile, authLoading, isLoggingIn, accessCode])
+
+    // Safety watchdog for stuck loading state
+    useEffect(() => {
+        let timer
+        if (isLoggingIn) {
+            timer = setTimeout(() => {
+                console.warn('⚠️ Login watchdog triggered: Force clearing loading state')
+                setIsLoggingIn(false)
+            }, 10000)
+        }
+        return () => clearTimeout(timer)
+    }, [isLoggingIn])
 
     useEffect(() => {
         if (user && profile) {
@@ -37,7 +61,8 @@ export default function Delivery({ setView }) {
     }, [user, profile])
 
     const fetchAssignedOrders = async () => {
-        setLoading(true)
+        if (!user) return
+        setIsOrdersLoading(true)
         setIsRefreshing(true)
         const { data, error } = await supabase
             .from('orders')
@@ -47,7 +72,7 @@ export default function Delivery({ setView }) {
             .order('created_at', { ascending: false })
 
         if (data) setOrders(data)
-        setLoading(false)
+        setIsOrdersLoading(false)
         setTimeout(() => setIsRefreshing(false), 500)
     }
 
@@ -57,26 +82,80 @@ export default function Delivery({ setView }) {
             .update({ status: newStatus })
             .eq('id', orderId)
 
-        if (error) alert(error.message)
-        else fetchAssignedOrders()
+        if (error) {
+            alert(error.message)
+            return
+        }
+
+        if (newStatus === 'shipped') {
+            startTracking()
+        } else if (newStatus === 'delivered') {
+            stopTracking()
+        }
+
+        fetchAssignedOrders()
     }
 
+    const startTracking = () => {
+        if (!navigator.geolocation) return
+
+        const id = navigator.geolocation.watchPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords
+                await supabase
+                    .from('profiles')
+                    .update({
+                        last_lat: latitude,
+                        last_lng: longitude,
+                        last_location_update: new Date().toISOString()
+                    })
+                    .eq('id', user.id)
+            },
+            (err) => console.error('GPS Error:', err),
+            { enableHighAccuracy: true }
+        )
+        setWatchId(id)
+    }
+
+    const stopTracking = () => {
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId)
+            setWatchId(null)
+        }
+    }
+
+    useEffect(() => {
+        return () => stopTracking()
+    }, [watchId])
+
     const handleCodeLogin = async (e) => {
-        e.preventDefault()
-        setLoading(true)
+        if (e) e.preventDefault()
+        if (isLoggingIn || accessCode.length < 4) return
+
+        console.log('🔑 Intentando login con:', accessCode)
+        setIsLoggingIn(true)
         try {
             const { error } = await signInWithCode(accessCode)
-            if (error) throw new Error('Código no válido o trabajador no encontrado')
+            if (error) {
+                console.error('❌ Login error result:', error)
+                throw new Error(error.message || 'Código no válido o trabajador no encontrado')
+            }
+            console.log('✅ Login exitoso, esperando redirección...')
         } catch (err) {
+            console.error('❌ Catch login error:', err.message)
             alert(err.message)
+            setIsLoggingIn(false) // Force clear on catch
         } finally {
-            setLoading(false)
+            // Safety: Clear loading state if no redirection happens soon
+            setTimeout(() => {
+                if (!user) setIsLoggingIn(false)
+            }, 3000)
         }
     }
 
     const handleRegisterStaff = async (e) => {
         e.preventDefault()
-        setLoading(true)
+        setIsLoggingIn(true)
         try {
             const { code, error } = await registerStaff(
                 newStaffData.firstName,
@@ -85,17 +164,17 @@ export default function Delivery({ setView }) {
             )
             if (error) throw error
             setGeneratedCode(code)
-            setLocalView('showCode')
+            setDeliveryView('showCode')
         } catch (err) {
             alert(err.message)
         } finally {
-            setLoading(false)
+            setIsLoggingIn(false)
         }
     }
 
     const handleLogout = async () => {
         await signOut()
-        setLocalView('login')
+        setDeliveryView('login')
         setAccessCode('')
     }
 
@@ -110,10 +189,10 @@ export default function Delivery({ setView }) {
 
     // --- VISTAS DE LOGIN / REGISTRO ---
     if (!user) {
-        if (view === 'login') {
+        if (deliveryView === 'login') {
             return (
                 <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
-                    <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md animate-in zoom-in duration-500 text-center">
+                    <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md animate-in zoom-in duration-500 text-center relative z-[1001]">
                         <div className="w-20 h-20 bg-[#e5242c]/10 rounded-full flex items-center justify-center text-[#e5242c] mx-auto mb-6">
                             <FaMotorcycle size={40} />
                         </div>
@@ -133,16 +212,16 @@ export default function Delivery({ setView }) {
                                 />
                             </div>
                             <button
-                                disabled={loading || accessCode.length < 4}
-                                className="w-full bg-[#e5242c] text-white py-5 rounded-2xl font-bold hover:bg-[#c41e25] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
+                                disabled={isLoggingIn || accessCode.length < 4}
+                                className="w-full bg-[#1e1e1e] border-2 border-[#e5242c] text-white py-5 rounded-2xl font-black hover:bg-[#e5242c] transition-all disabled:opacity-30 flex items-center justify-center gap-3 shadow-xl uppercase tracking-widest text-sm"
                             >
-                                {loading ? 'Validando...' : 'Iniciar Turno'} <FaCheckCircle />
+                                {isLoggingIn ? 'Validando...' : 'Validar y Entrar'} <FaArrowRight />
                             </button>
                         </form>
 
                         <div className="mt-8 pt-8 border-t border-white/5">
                             <button
-                                onClick={() => setLocalView('register')}
+                                onClick={() => setDeliveryView('register')}
                                 className="text-gray-500 hover:text-white transition-colors text-sm"
                             >
                                 Soy un nuevo repartidor
@@ -153,10 +232,10 @@ export default function Delivery({ setView }) {
             )
         }
 
-        if (view === 'register') {
+        if (deliveryView === 'register') {
             return (
                 <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
-                    <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md animate-in slide-in-from-right duration-500">
+                    <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md animate-in slide-in-from-right duration-500 relative z-[1001]">
                         <h2 className="text-2xl font-bold text-center mb-2">Nuevo Repartidor</h2>
                         <p className="text-gray-500 text-center text-sm mb-8">Completa tus datos para generarte un código de acceso.</p>
 
@@ -186,14 +265,14 @@ export default function Delivery({ setView }) {
                                 onChange={e => setNewStaffData({ ...newStaffData, phone: e.target.value })}
                             />
                             <button
-                                disabled={loading}
-                                className="w-full bg-[#e5242c] text-white py-5 rounded-2xl font-bold hover:bg-[#c41e25] transition-all disabled:opacity-50 mt-4"
+                                disabled={isLoggingIn}
+                                className="w-full bg-[#1e1e1e] border-2 border-[#e5242c] text-white py-5 rounded-2xl font-black hover:bg-[#e5242c] transition-all disabled:opacity-30 mt-4 uppercase tracking-widest text-sm"
                             >
-                                {loading ? 'Generando Acceso...' : 'Registrarme y Obtener Código'}
+                                {isLoggingIn ? 'Generando Acceso...' : 'Registrarme y Obtener Código'}
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setLocalView('login')}
+                                onClick={() => setDeliveryView('login')}
                                 className="w-full text-gray-500 text-sm py-2"
                             >
                                 Volver al inicio
@@ -204,7 +283,7 @@ export default function Delivery({ setView }) {
             )
         }
 
-        if (view === 'showCode') {
+        if (deliveryView === 'showCode') {
             return (
                 <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6 text-center">
                     <div className="bg-[#111] border border-green-500/30 p-10 rounded-[3rem] w-full max-w-md animate-in zoom-in duration-500">
@@ -272,7 +351,7 @@ export default function Delivery({ setView }) {
                     </p>
                 </div>
 
-                {loading ? (
+                {isOrdersLoading ? (
                     <div className="text-center py-20 text-gray-500 italic">Actualizando hoja de pedidos...</div>
                 ) : orders.length === 0 ? (
                     <div className="bg-[#111] border border-white/5 rounded-3xl p-10 text-center space-y-4">

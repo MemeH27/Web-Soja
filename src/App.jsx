@@ -50,11 +50,59 @@ function App() {
   // Show Auth Modal on start if not logged in (one-time prompt)
   useEffect(() => {
     const hasPrompted = sessionStorage.getItem('soja_auth_prompted')
-    if (!authLoading && !user && !hasPrompted) {
+    // No pedir login si ya estamos en rutas de administración o reparto
+    if (!authLoading && !user && !hasPrompted && view !== 'admin' && view !== 'delivery') {
       setShowAuthModal(true)
       sessionStorage.setItem('soja_auth_prompted', 'true')
+    } else if ((view === 'admin' || view === 'delivery') && showAuthModal) {
+      // Forzar cierre si saltamos a estas rutas
+      setShowAuthModal(false)
     }
-  }, [user, authLoading])
+  }, [user, authLoading, view, showAuthModal])
+
+  // New: Restore active order from localStorage
+  useEffect(() => {
+    const savedOrderId = localStorage.getItem('soja_active_order_id')
+    if (savedOrderId && !activeOrder) {
+      const fetchActiveOrder = async () => {
+        const { data } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', savedOrderId)
+          .single()
+
+        if (data && data.status !== 'delivered') {
+          setActiveOrder(data)
+        } else if (data && data.status === 'delivered') {
+          localStorage.removeItem('soja_active_order_id')
+        }
+      }
+      fetchActiveOrder()
+
+      // Subscribe to changes in this order
+      const sub = supabase
+        .channel('active_order_tracking')
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${savedOrderId}`
+        }, (payload) => {
+          setActiveOrder(payload.new)
+          if (payload.new.status === 'delivered') {
+            setTimeout(() => {
+              localStorage.removeItem('soja_active_order_id')
+              setActiveOrder(null)
+            }, 10000) // Clear after 10s of being delivered
+          }
+        })
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(sub)
+      }
+    }
+  }, [])
 
   // Effect to handle secret route detection
   useEffect(() => {
@@ -108,10 +156,7 @@ function App() {
   }
 
   function handleCheckout(paymentDetails) {
-    if (!user) {
-      setShowAuthModal(true)
-      return
-    }
+    // Guest checkout allowed
 
     if (subtotal <= 0) {
       setValidationMessage('Agrega al menos un producto al carrito.')
@@ -171,7 +216,7 @@ function App() {
     // Save to Supabase
     const saveOrder = async () => {
       try {
-        const { error: orderError } = await supabase
+        const { data: newOrder, error: orderError } = await supabase
           .from('orders')
           .insert({
             user_id: user?.id || null,
@@ -186,7 +231,16 @@ function App() {
             observations: observations,
             status: 'pending'
           })
-        if (orderError) console.error('Error saving order:', orderError)
+          .select()
+          .single()
+
+        if (orderError) {
+          console.error('Error saving order:', orderError)
+        } else if (newOrder) {
+          console.log('✅ Pedido guardado:', newOrder.id)
+          setActiveOrder(newOrder)
+          localStorage.setItem('soja_active_order_id', newOrder.id)
+        }
       } catch (err) {
         console.error('Unexpected error saving order:', err)
       }
