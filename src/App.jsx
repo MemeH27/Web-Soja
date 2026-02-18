@@ -387,6 +387,26 @@ function App() {
           console.log('✅ Pedido guardado:', newOrder.id)
           setActiveOrder(newOrder)
           localStorage.setItem('soja_active_order_id', newOrder.id)
+
+          // Disparar push notification a admins directamente desde el frontend
+          try {
+            const { error: pushError } = await supabase.functions.invoke('push-dispatch', {
+              body: {
+                type: 'INSERT',
+                schema: 'public',
+                table: 'orders',
+                record: newOrder,
+                old_record: null,
+              },
+            })
+            if (pushError) {
+              console.warn('⚠️ push-dispatch invoke error:', pushError)
+            } else {
+              console.log('🔔 push-dispatch invocado OK')
+            }
+          } catch (pushErr) {
+            console.warn('⚠️ push-dispatch fetch error:', pushErr)
+          }
         }
       } catch (err) {
         console.error('Unexpected error saving order:', err)

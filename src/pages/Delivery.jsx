@@ -158,10 +158,14 @@ export default function Delivery({ setView }) {
     }
 
     const updateStatus = async (orderId, newStatus) => {
-        const { error } = await supabase
+        const oldOrder = orders.find(o => o.id === orderId) || null
+
+        const { data: updatedOrder, error } = await supabase
             .from('orders')
             .update({ status: newStatus })
             .eq('id', orderId)
+            .select()
+            .single()
 
         if (error) {
             alert(error.message)
@@ -175,6 +179,21 @@ export default function Delivery({ setView }) {
         }
 
         fetchAssignedOrders()
+
+        // Notificar push al usuario del pedido
+        try {
+            await supabase.functions.invoke('push-dispatch', {
+                body: {
+                    type: 'UPDATE',
+                    schema: 'public',
+                    table: 'orders',
+                    record: updatedOrder,
+                    old_record: oldOrder,
+                },
+            })
+        } catch (pushErr) {
+            console.warn('⚠️ push-dispatch (updateStatus) error:', pushErr)
+        }
     }
 
     const startTracking = () => {

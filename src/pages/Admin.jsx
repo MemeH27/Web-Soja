@@ -484,13 +484,36 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
     if (orders.length === 0) return <div className="text-gray-500 italic p-8 bg-[#111] rounded-2xl border border-white/5">No hay pedidos registrados en el sistema.</div>
 
     const assignDelivery = async (orderId, deliveryId) => {
-        const { error } = await supabase
+        const oldOrder = orders.find(o => o.id === orderId) || null
+
+        const { data: updatedOrder, error } = await supabase
             .from('orders')
             .update({ delivery_id: deliveryId, status: 'prepared' })
             .eq('id', orderId)
+            .select()
+            .single()
 
-        if (error) alert(error.message)
-        else onUpdate()
+        if (error) {
+            alert(error.message)
+            return
+        }
+
+        onUpdate()
+
+        // Notificar push al repartidor y al usuario del pedido
+        try {
+            await supabase.functions.invoke('push-dispatch', {
+                body: {
+                    type: 'UPDATE',
+                    schema: 'public',
+                    table: 'orders',
+                    record: updatedOrder,
+                    old_record: oldOrder,
+                },
+            })
+        } catch (pushErr) {
+            console.warn('⚠️ push-dispatch (assignDelivery) error:', pushErr)
+        }
     }
 
     const deleteOrder = async (orderId) => {
