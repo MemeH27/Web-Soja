@@ -75,12 +75,20 @@ export default function Admin({ setView }) {
 
     const fetchUsers = async () => {
         setLoadingUsers(true)
+        console.log('🔍 Intentando cargar usuarios...')
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .order('created_at', { ascending: false })
-        if (data) setUsersList(data)
-        if (error) console.error('Error fetching users:', error)
+
+        if (data) {
+            console.log('✅ Usuarios recibidos:', data.length, data)
+            setUsersList(data)
+        }
+        if (error) {
+            console.error('❌ Error cargando usuarios:', error)
+            alert('Error al cargar usuarios: ' + error.message)
+        }
         setLoadingUsers(false)
     }
 
@@ -158,14 +166,27 @@ export default function Admin({ setView }) {
                                 activeTab === 'users' ? 'Gestionar Usuarios' :
                                     'Gestionar Reseñas'}
                     </h2>
-                    {activeTab === 'products' && (
+                    <div className="flex items-center gap-4">
                         <button
-                            onClick={() => { setEditingProduct(null); setShowProductModal(true); }}
-                            className="bg-[#e5242c] text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform"
+                            onClick={() => {
+                                if (activeTab === 'users') fetchUsers()
+                                if (activeTab === 'orders') fetchOrders()
+                                if (activeTab === 'products') window.location.reload()
+                            }}
+                            className="bg-white/5 hover:bg-white/10 text-gray-400 p-2 rounded-lg transition-all"
+                            title="Refrescar datos"
                         >
-                            <FaPlus /> Añadir Producto
+                            Refrescar
                         </button>
-                    )}
+                        {activeTab === 'products' && (
+                            <button
+                                onClick={() => { setEditingProduct(null); setShowProductModal(true); }}
+                                className="bg-[#e5242c] text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform"
+                            >
+                                <FaPlus /> Añadir Producto
+                            </button>
+                        )}
+                    </div>
                 </header>
 
                 {activeTab === 'products' ? (
@@ -413,7 +434,7 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
     )
 }
 
-function UsersList({ users, loading }) {
+function UsersList({ users, loading, onUpdate }) {
     if (loading) return <div className="p-8 text-gray-400">Cargando usuarios...</div>
     if (users.length === 0) return <div className="text-gray-500 italic p-8 bg-[#111] rounded-2xl border border-white/5">No hay usuarios registrados en el sistema.</div>
 
