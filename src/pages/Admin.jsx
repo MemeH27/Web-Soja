@@ -441,16 +441,26 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
 
                         <div className="flex items-center gap-3 w-full md:w-auto">
                             {order.delivery_type === 'delivery' && (
-                                <select
-                                    className="flex-1 md:flex-none bg-black/50 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-[#e5242c] transition-colors"
-                                    value={order.delivery_id || ''}
-                                    onChange={(e) => assignDelivery(order.id, e.target.value)}
-                                >
-                                    <option value="">Asignar Repartidor</option>
-                                    {deliveryUsers.map(u => (
-                                        <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
-                                    ))}
-                                </select>
+                                <div className="relative flex-1 md:flex-none">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e5242c] pointer-events-none">
+                                        <FaMotorcycle size={14} />
+                                    </div>
+                                    <select
+                                        className="w-full bg-black border border-white/10 rounded-2xl pl-12 pr-10 py-3 text-xs text-white outline-none focus:border-[#e5242c] focus:ring-2 focus:ring-[#e5242c]/20 transition-all appearance-none cursor-pointer font-bold"
+                                        value={order.delivery_id || ''}
+                                        onChange={(e) => assignDelivery(order.id, e.target.value)}
+                                    >
+                                        <option value="">Asignar Repartidor</option>
+                                        {deliveryUsers.map(u => (
+                                            <option key={u.id} value={u.id}>
+                                                {u.first_name} {u.last_name} ({u.delivery_id_card})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                                        <FaChevronDown size={10} />
+                                    </div>
+                                </div>
                             )}
                             <button
                                 onClick={() => deleteOrder(order.id)}
@@ -551,41 +561,33 @@ function DeliveryList({ users, loading, onUpdate }) {
                     </div>
 
                     <div className="pt-4 border-t border-white/5 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-black/30 p-3 rounded-xl border border-white/5">
-                                <p className="text-[10px] text-gray-500 uppercase font-black mb-1">Nº Repartidor</p>
-                                <p className="text-white font-bold">{user.delivery_number || 'REP-???'}</p>
-                            </div>
-                            <div className="bg-[#e5242c]/10 p-3 rounded-xl border border-[#e5242c]/20">
-                                <p className="text-[10px] text-[#e5242c] uppercase font-black mb-1">Código de Acceso</p>
-                                <p className="text-white font-black text-lg tracking-wider">{user.delivery_id_card || '----'}</p>
-                            </div>
+                        <div className="bg-[#e5242c]/10 p-4 rounded-2xl border border-[#e5242c]/20">
+                            <p className="text-[10px] text-[#e5242c] uppercase font-black mb-1 tracking-widest text-center">Código de Acceso</p>
+                            <p className="text-white font-black text-3xl tracking-[0.4rem] text-center">{user.delivery_id_card || '----'}</p>
                         </div>
 
-                        <div className="space-y-1">
+                        <div className="space-y-1 px-2">
                             <p className="text-gray-400 text-sm flex items-center gap-2">
                                 <span className="text-blue-500 text-xs">●</span> {user.phone || 'Sin teléfono'}
                             </p>
-                            <p className="text-gray-400 text-sm flex items-center gap-2 font-mono">
-                                <span className="text-blue-500 text-xs text-[10px]">📧</span> {user.email}
+                            <p className="text-gray-400 text-[11px] flex items-center gap-2 font-mono">
+                                <span className="text-blue-500">📧</span> {user.email}
                             </p>
                         </div>
 
                         <div className="flex gap-2 mt-2">
                             <button
                                 onClick={() => {
-                                    const num = prompt('Nuevo Número de Repartidor (REP-XXX):', user.delivery_number || '')
                                     const id = prompt('Nuevo Código de Acceso (4 dígitos):', user.delivery_id_card || '')
-                                    if (num !== null || id !== null) {
+                                    if (id !== null) {
                                         supabase.from('profiles').update({
-                                            delivery_number: num || user.delivery_number,
-                                            delivery_id_card: id || user.delivery_id_card
+                                            delivery_id_card: id
                                         }).eq('id', user.id).then(() => onUpdate())
                                     }
                                 }}
-                                className="flex-1 bg-white/5 hover:bg-white/10 text-[10px] text-white py-2.5 rounded-xl transition-colors border border-white/5 uppercase font-bold"
+                                className="flex-1 bg-white/5 hover:bg-white/10 text-[10px] text-white py-3 rounded-xl transition-colors border border-white/5 uppercase font-bold"
                             >
-                                Editar Datos
+                                Editar Código
                             </button>
                             <button
                                 onClick={async () => {
@@ -593,17 +595,16 @@ function DeliveryList({ users, loading, onUpdate }) {
                                         // Reset role and clear delivery data
                                         const { error } = await supabase.from('profiles').update({
                                             role: 'user',
-                                            delivery_number: null,
                                             delivery_id_card: null
                                         }).eq('id', user.id)
                                         if (error) alert(error.message)
                                         else onUpdate()
                                     }
                                 }}
-                                className="bg-red-500/10 hover:bg-red-500/20 text-red-500 p-2.5 rounded-xl transition-colors border border-red-500/20"
+                                className="bg-red-500/10 hover:bg-red-500/20 text-red-500 p-3 rounded-xl transition-colors border border-red-500/20"
                                 title="Eliminar Repartidor"
                             >
-                                <FaPlus className="rotate-45" />
+                                <FaPlus className="rotate-45" size={14} />
                             </button>
                         </div>
                     </div>
