@@ -1,7 +1,8 @@
-const CACHE_NAME = 'soja-v2'
+const CACHE_NAME = 'soja-v3'
 const STATIC_ASSETS = [
     '/',
     '/index.html',
+    '/img/logo_soja_pwa.png',
     '/img/apple-touch-icon.png',
     '/img/pwa-192x192.png',
     '/img/pwa-512x512.png',
@@ -56,8 +57,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || '🍜 SOJA - Nuevo Pedido'
     const options = {
         body: data.body || 'Tienes un nuevo pedido esperando',
-        icon: '/img/logo/logo.png',
-        badge: '/img/logo/logo.png',
+        icon: '/img/logo_soja_pwa.png',
+        badge: '/img/logo_soja_pwa.png',
         vibrate: [200, 100, 200],
         data: data.url || '/',
         actions: [

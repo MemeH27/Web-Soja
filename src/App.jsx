@@ -63,15 +63,18 @@ function NewOrderToast({ order, onDismiss }) {
   }, [onDismiss])
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] bg-[#111] border border-[#e5242c]/50 rounded-2xl p-4 shadow-2xl shadow-[#e5242c]/20 animate-in slide-in-from-right duration-500 max-w-sm">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-[#e5242c]/10 rounded-xl flex items-center justify-center text-[#e5242c] shrink-0 text-xl">
+    <div
+      className="fixed right-4 z-[9999] bg-[#111] border border-[#e5242c]/50 rounded-3xl p-5 shadow-2xl shadow-[#e5242c]/20 animate-in slide-in-from-right duration-500 max-w-md"
+      style={{ top: 'calc(env(safe-area-inset-top) + 12px)' }}
+    >
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 bg-[#e5242c]/10 rounded-2xl flex items-center justify-center text-[#e5242c] shrink-0 text-2xl">
           🛵
         </div>
         <div className="flex-1">
-          <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-widest mb-1">¡Nuevo Pedido!</p>
-          <p className="text-white font-bold text-sm">{order.client_name}</p>
-          <p className="text-gray-400 text-xs">L {Number(order.total).toFixed(2)} · {order.delivery_type === 'delivery' ? 'Domicilio' : 'Para Llevar'}</p>
+          <p className="text-[#e5242c] text-xs font-black uppercase tracking-widest mb-1">Nuevo Pedido</p>
+          <p className="text-white font-bold text-base">{order.client_name}</p>
+          <p className="text-gray-300 text-sm">L {Number(order.total).toFixed(2)} · {order.delivery_type === 'delivery' ? 'Domicilio' : 'Para Llevar'}</p>
         </div>
         <button onClick={onDismiss} className="text-gray-600 hover:text-white transition-colors text-lg leading-none">×</button>
       </div>
@@ -94,15 +97,18 @@ function UserOrderStatusToast({ order, onDismiss }) {
         : 'Pedido entregado'
 
   return (
-    <div className="fixed top-4 left-4 z-[9999] bg-[#111] border border-white/20 rounded-2xl p-4 shadow-2xl animate-in slide-in-from-left duration-500 max-w-sm">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-[#e5242c]/10 rounded-xl flex items-center justify-center text-[#e5242c] shrink-0 text-xl">
+    <div
+      className="fixed left-4 z-[9999] bg-[#111] border border-white/20 rounded-3xl p-5 shadow-2xl animate-in slide-in-from-left duration-500 max-w-md"
+      style={{ top: 'calc(env(safe-area-inset-top) + 12px)' }}
+    >
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 bg-[#e5242c]/10 rounded-2xl flex items-center justify-center text-[#e5242c] shrink-0 text-2xl">
           🍜
         </div>
         <div className="flex-1">
-          <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-widest mb-1">Actualizacion de pedido</p>
-          <p className="text-white font-bold text-sm">{statusLabel}</p>
-          <p className="text-gray-400 text-xs">{order.delivery_type === 'delivery' ? 'Entrega a domicilio' : 'Para llevar'}</p>
+          <p className="text-[#e5242c] text-xs font-black uppercase tracking-widest mb-1">Actualizacion de pedido</p>
+          <p className="text-white font-bold text-base">{statusLabel}</p>
+          <p className="text-gray-300 text-sm">{order.delivery_type === 'delivery' ? 'Entrega a domicilio' : 'Para llevar'}</p>
         </div>
         <button onClick={onDismiss} className="text-gray-600 hover:text-white transition-colors text-lg leading-none">×</button>
       </div>
@@ -188,6 +194,7 @@ function App() {
           const nextOrder = payload.new
           if (prev?.status && prev.status !== nextOrder.status) {
             setUserOrderToast(nextOrder)
+            playToastSound('status')
           }
           return nextOrder
         })
@@ -202,7 +209,7 @@ function App() {
       .subscribe()
 
     return () => { supabase.removeChannel(sub) }
-  }, [activeOrder?.id])
+  }, [activeOrder?.id, playToastSound])
 
   // ─── Secret route detection (kept for backwards compat) ───────────────────
   useEffect(() => {
@@ -224,21 +231,28 @@ function App() {
     if (currentRole === 'delivery') setView('delivery')
   }, [role, profile, user])
 
-  // ─── Admin Real-Time Notifications ───────────────────────────────────────
-  const playNotificationSound = useCallback(() => {
+  // ─── App Toast Notification Sound ────────────────────────────────────────
+  const playToastSound = useCallback((type = 'default') => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)()
       const oscillator = ctx.createOscillator()
       const gainNode = ctx.createGain()
       oscillator.connect(gainNode)
       gainNode.connect(ctx.destination)
-      oscillator.frequency.setValueAtTime(880, ctx.currentTime)
-      oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.1)
-      oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.2)
+
+      if (type === 'status') {
+        oscillator.frequency.setValueAtTime(660, ctx.currentTime)
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.09)
+      } else {
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime)
+        oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.1)
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.2)
+      }
+
       gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45)
       oscillator.start(ctx.currentTime)
-      oscillator.stop(ctx.currentTime + 0.5)
+      oscillator.stop(ctx.currentTime + 0.45)
     } catch (e) {
       console.log('Audio notification not available')
     }
@@ -257,13 +271,13 @@ function App() {
       }, (payload) => {
         console.log('🔔 Nuevo pedido recibido:', payload.new)
         setNewOrderToast(payload.new)
-        playNotificationSound()
+        playToastSound('new')
       })
       .subscribe()
 
     notifSubRef.current = sub
     return () => { supabase.removeChannel(sub) }
-  }, [role, playNotificationSound])
+  }, [role, playToastSound])
 
   // ─── Cart & Checkout ──────────────────────────────────────────────────────
   const subtotal = useMemo(() => {

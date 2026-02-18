@@ -1,7 +1,33 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { FaMotorcycle, FaBox, FaMapMarkerAlt, FaCheckCircle, FaSignOutAlt, FaPhone, FaClock, FaTimes, FaUser, FaArrowRight } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
+
+function DeliveryAssignmentToast({ order, onDismiss }) {
+    useEffect(() => {
+        const timer = setTimeout(onDismiss, 8000)
+        return () => clearTimeout(timer)
+    }, [onDismiss])
+
+    return (
+        <div
+            className="fixed right-4 z-[9999] bg-[#111] border border-blue-500/40 rounded-3xl p-5 shadow-2xl shadow-blue-500/20 animate-in slide-in-from-right duration-500 max-w-md"
+            style={{ top: 'calc(env(safe-area-inset-top) + 12px)' }}
+        >
+            <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 shrink-0 text-2xl">
+                    🛵
+                </div>
+                <div className="flex-1">
+                    <p className="text-blue-400 text-xs font-black uppercase tracking-widest mb-1">Pedido Asignado</p>
+                    <p className="text-white font-bold text-base">{order.client_name}</p>
+                    <p className="text-gray-300 text-sm">Total: L {Number(order.total || 0).toFixed(2)}</p>
+                </div>
+                <button onClick={onDismiss} className="text-gray-600 hover:text-white transition-colors text-lg leading-none">×</button>
+            </div>
+        </div>
+    )
+}
 
 export default function Delivery({ setView }) {
     const { profile, signOut, user, loading: authLoading, signInWithCode, registerStaff } = useAuth()
@@ -15,6 +41,25 @@ export default function Delivery({ setView }) {
     const [selectedOrder, setSelectedOrder] = useState(null)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [watchId, setWatchId] = useState(null)
+    const [deliveryToastOrder, setDeliveryToastOrder] = useState(null)
+
+    const playDeliveryToastSound = useCallback(() => {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)()
+            const oscillator = ctx.createOscillator()
+            const gainNode = ctx.createGain()
+            oscillator.connect(gainNode)
+            gainNode.connect(ctx.destination)
+            oscillator.frequency.setValueAtTime(740, ctx.currentTime)
+            oscillator.frequency.setValueAtTime(988, ctx.currentTime + 0.12)
+            gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+            gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45)
+            oscillator.start(ctx.currentTime)
+            oscillator.stop(ctx.currentTime + 0.45)
+        } catch (e) {
+            console.log('Delivery notification sound not available')
+        }
+    }, [])
 
     useEffect(() => {
         console.log('📦 Delivery Render:', {
@@ -49,7 +94,15 @@ export default function Delivery({ setView }) {
                     schema: 'public',
                     table: 'orders',
                     filter: `delivery_id=eq.${user.id}`
-                }, () => {
+                }, (payload) => {
+                    if (payload.eventType === 'INSERT') {
+                        setDeliveryToastOrder(payload.new)
+                        playDeliveryToastSound()
+                    }
+                    if (payload.eventType === 'UPDATE' && payload.old?.delivery_id !== payload.new?.delivery_id) {
+                        setDeliveryToastOrder(payload.new)
+                        playDeliveryToastSound()
+                    }
                     fetchAssignedOrders()
                 })
                 .subscribe()
@@ -58,7 +111,7 @@ export default function Delivery({ setView }) {
                 supabase.removeChannel(subscription)
             }
         }
-    }, [user, profile])
+    }, [user, profile, playDeliveryToastSound])
 
     const fetchAssignedOrders = async () => {
         if (!user) return
@@ -315,6 +368,12 @@ export default function Delivery({ setView }) {
     // --- DASHBOARD DE REPARTO (LOGUEADO) ---
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white">
+            {deliveryToastOrder && (
+                <DeliveryAssignmentToast
+                    order={deliveryToastOrder}
+                    onDismiss={() => setDeliveryToastOrder(null)}
+                />
+            )}
             {/* Header */}
             <header className="bg-[#111] border-b border-white/10 p-4 md:p-6 sticky top-0 z-10 flex justify-between items-center backdrop-blur-md bg-opacity-80">
                 <div className="flex items-center gap-3">
