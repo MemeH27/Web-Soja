@@ -29,10 +29,11 @@ export default function Navbar({ setView, user, setShowAuthModal }) {
 
     return (
         <header
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileMenuOpen ? 'bg-black/90 backdrop-blur-md shadow-lg py-3' : 'bg-transparent py-5'
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileMenuOpen ? 'bg-black/90 backdrop-blur-md shadow-lg' : 'bg-transparent'
                 }`}
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
-            <div className="max-w-[1180px] mx-auto px-6 flex justify-between items-center">
+            <div className={`max-w-[1180px] mx-auto px-6 flex justify-between items-center ${scrolled || mobileMenuOpen ? 'py-3' : 'py-5'}`}>
                 <a href="#inicio" className="flex items-center gap-2 z-50 relative" onClick={() => handleLinkClick('#inicio')}>
                     <img src="/img/logo/logo_blanco.png" alt="Logo SOJA" className="h-10 md:h-12 transition-all" />
                 </a>

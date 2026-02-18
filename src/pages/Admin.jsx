@@ -50,6 +50,7 @@ export default function Admin({ setView }) {
     const [loadingOrders, setLoadingOrders] = useState(false)
     const [showProductModal, setShowProductModal] = useState(false)
     const [editingProduct, setEditingProduct] = useState(null)
+    const [newOrderBadge, setNewOrderBadge] = useState(0)
 
     // Delivery system state
     const [deliveryUsers, setDeliveryUsers] = useState([])
@@ -61,6 +62,35 @@ export default function Admin({ setView }) {
     useEffect(() => {
         // Close sidebar on tab change on mobile
         setIsSidebarOpen(false)
+        // Clear badge when switching to orders tab
+        if (activeTab === 'orders') setNewOrderBadge(0)
+    }, [activeTab])
+
+    // Real-time subscription: auto-prepend new orders without refreshing
+    useEffect(() => {
+        const sub = supabase
+            .channel('admin_orders_realtime')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'orders'
+            }, (payload) => {
+                console.log('🔔 Nuevo pedido en tiempo real:', payload.new)
+                setOrdersList(prev => [payload.new, ...prev])
+                if (activeTab !== 'orders') {
+                    setNewOrderBadge(prev => prev + 1)
+                }
+            })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'orders'
+            }, (payload) => {
+                setOrdersList(prev => prev.map(o => o.id === payload.new.id ? payload.new : o))
+            })
+            .subscribe()
+
+        return () => { supabase.removeChannel(sub) }
     }, [activeTab])
 
     useEffect(() => {
@@ -180,6 +210,11 @@ export default function Admin({ setView }) {
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'orders' ? 'bg-[#e5242c] text-white font-bold' : 'hover:bg-white/5 text-gray-400'}`}
                     >
                         <FaBox /> Pedidos
+                        {newOrderBadge > 0 && (
+                            <span className="ml-auto bg-[#e5242c] text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+                                {newOrderBadge}
+                            </span>
+                        )}
                     </button>
                     <button
                         onClick={() => setActiveTab('users')}
