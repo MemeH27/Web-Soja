@@ -486,9 +486,15 @@ function UsersList({ users, loading, onUpdate }) {
                             className="w-full mt-4 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-gray-400 outline-none focus:border-[#e5242c]"
                             value={user.role || 'user'}
                             onChange={async (e) => {
-                                const { error } = await supabase.from('profiles').update({ role: e.target.value }).eq('id', user.id)
-                                if (error) alert(error.message)
-                                else onUpdate()
+                                const newRole = e.target.value
+                                const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', user.id)
+                                if (error) {
+                                    console.error('❌ Error actualizando rol:', error)
+                                    alert('Error de base de datos: ' + error.message)
+                                } else {
+                                    console.log('✅ Rol actualizado con éxito para:', user.email)
+                                    onUpdate()
+                                }
                             }}
                         >
                             <option value="user">Cliente Estándar</option>
