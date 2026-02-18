@@ -32,10 +32,18 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-push-webhook-secret',
+}
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
   })
 }
 
@@ -207,10 +215,11 @@ Deno.serve(async (req) => {
           sent += 1
         } catch (err: any) {
           const statusCode = err?.statusCode || err?.status || 0
+          const body = err?.body || ''
+          console.error(`Push send error ${statusCode}: ${err?.message || err}. Body: ${body}`)
+
           if (statusCode === 404 || statusCode === 410) {
             invalidIds.push(sub.id)
-          } else {
-            console.error('Push send error', statusCode, err?.message || err)
           }
         }
       }
