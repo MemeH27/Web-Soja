@@ -29,6 +29,32 @@ function DeliveryAssignmentToast({ order, onDismiss }) {
     )
 }
 
+function NewDeliveryCodeModal({ code, onClose }) {
+    return (
+        <div className="fixed inset-0 z-[1100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-6">
+            <div className="w-full max-w-md bg-[#111] border border-[#e5242c]/40 rounded-[2.2rem] p-8 text-center shadow-2xl animate-in zoom-in duration-300">
+                <div className="w-20 h-20 mx-auto mb-5 bg-[#e5242c]/10 text-[#e5242c] rounded-full flex items-center justify-center text-4xl">
+                    🛵
+                </div>
+                <p className="text-[#e5242c] text-[11px] font-black uppercase tracking-[0.18rem] mb-2">Ya Eres Repartidor</p>
+                <h3 className="text-white text-2xl font-black mb-5">Tu codigo de acceso es</h3>
+                <div className="bg-black/60 border-2 border-dashed border-[#e5242c]/40 rounded-3xl p-6 mb-5">
+                    <p className="text-white text-6xl font-black tracking-[0.6rem] leading-none">{code || '----'}</p>
+                </div>
+                <p className="text-yellow-400/90 text-xs font-black uppercase tracking-wider mb-7">
+                    Por favor no lo compartas con nadie
+                </p>
+                <button
+                    onClick={onClose}
+                    className="w-full bg-[#e5242c] hover:bg-[#c41e25] text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-colors"
+                >
+                    Entendido
+                </button>
+            </div>
+        </div>
+    )
+}
+
 export default function Delivery({ setView }) {
     const { profile, signOut, user, loading: authLoading, signInWithCode, registerStaff } = useAuth()
     const [orders, setOrders] = useState([])
@@ -42,6 +68,7 @@ export default function Delivery({ setView }) {
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [watchId, setWatchId] = useState(null)
     const [deliveryToastOrder, setDeliveryToastOrder] = useState(null)
+    const [showNewDeliveryModal, setShowNewDeliveryModal] = useState(false)
 
     const playDeliveryToastSound = useCallback(() => {
         try {
@@ -217,7 +244,8 @@ export default function Delivery({ setView }) {
             )
             if (error) throw error
             setGeneratedCode(code)
-            setDeliveryView('showCode')
+            setDeliveryView('login')
+            setShowNewDeliveryModal(true)
         } catch (err) {
             alert(err.message)
         } finally {
@@ -281,6 +309,12 @@ export default function Delivery({ setView }) {
                             </button>
                         </div>
                     </div>
+                    {showNewDeliveryModal && (
+                        <NewDeliveryCodeModal
+                            code={generatedCode}
+                            onClose={() => setShowNewDeliveryModal(false)}
+                        />
+                    )}
                 </div>
             )
         }
@@ -374,6 +408,12 @@ export default function Delivery({ setView }) {
                     onDismiss={() => setDeliveryToastOrder(null)}
                 />
             )}
+            {showNewDeliveryModal && (
+                <NewDeliveryCodeModal
+                    code={generatedCode}
+                    onClose={() => setShowNewDeliveryModal(false)}
+                />
+            )}
             {/* Header */}
             <header className="bg-[#111] border-b border-white/10 p-4 md:p-6 sticky top-0 z-10 flex justify-between items-center backdrop-blur-md bg-opacity-80">
                 <div className="flex items-center gap-3">
@@ -408,6 +448,14 @@ export default function Delivery({ setView }) {
                     <p className="text-gray-500 text-sm leading-tight">
                         Hola, <strong>{profile?.first_name || 'Repartidor'}</strong>. Tienes {orders.length} pedidos por entregar.
                     </p>
+                </div>
+
+                <div className="mb-8 bg-[#111] border border-[#e5242c]/30 rounded-3xl p-6 text-center shadow-xl">
+                    <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-[0.22rem] mb-2">Tu Codigo de Acceso</p>
+                    <p className="text-white text-5xl md:text-6xl font-black tracking-[0.55rem] leading-none">
+                        {profile?.delivery_id_card || '----'}
+                    </p>
+                    <p className="text-gray-500 text-xs mt-3 uppercase tracking-wider">No lo compartas con nadie</p>
                 </div>
 
                 {isOrdersLoading ? (

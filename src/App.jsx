@@ -116,6 +116,31 @@ function UserOrderStatusToast({ order, onDismiss }) {
   )
 }
 
+function DeliveredOrderModal({ order, onClose }) {
+  const shortId = order?.id ? order.id.slice(0, 8).toUpperCase() : '--------'
+
+  return (
+    <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-[#111] border border-green-500/30 rounded-[2.2rem] p-8 text-center shadow-2xl animate-in zoom-in duration-300">
+        <div className="w-20 h-20 mx-auto mb-5 bg-green-500/10 text-green-400 rounded-full flex items-center justify-center text-4xl">
+          ✅
+        </div>
+        <p className="text-green-400 text-[11px] font-black uppercase tracking-[0.18rem] mb-2">Pedido Entregado</p>
+        <h3 className="text-white text-2xl font-black mb-3">Tu pedido #{shortId} ha sido entregado con exito</h3>
+        <p className="text-gray-300 text-sm leading-relaxed mb-7">
+          Gracias por tu compra. Esperamos que disfrutes tu comida. Buen provecho de parte de SOJA.
+        </p>
+        <button
+          onClick={onClose}
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-black uppercase tracking-wider transition-colors"
+        >
+          Entendido
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const { user, profile, role, loading: authLoading } = useAuth()
   const [view, setView] = useState('home')
@@ -131,6 +156,7 @@ function App() {
   const [activeOrder, setActiveOrder] = useState(null)
   const [newOrderToast, setNewOrderToast] = useState(null)
   const [userOrderToast, setUserOrderToast] = useState(null)
+  const [deliveredOrderModal, setDeliveredOrderModal] = useState(null)
   const audioRef = useRef(null)
   const notifSubRef = useRef(null)
 
@@ -200,10 +226,9 @@ function App() {
         })
 
         if (payload.new.status === 'delivered') {
-          setTimeout(() => {
-            localStorage.removeItem('soja_active_order_id')
-            setActiveOrder(null)
-          }, 10000)
+          setDeliveredOrderModal(payload.new)
+          localStorage.removeItem('soja_active_order_id')
+          setActiveOrder(null)
         }
       })
       .subscribe()
@@ -400,6 +425,12 @@ function App() {
         <UserOrderStatusToast
           order={userOrderToast}
           onDismiss={() => setUserOrderToast(null)}
+        />
+      )}
+      {deliveredOrderModal && role !== 'admin' && role !== 'delivery' && (
+        <DeliveredOrderModal
+          order={deliveredOrderModal}
+          onClose={() => setDeliveredOrderModal(null)}
         />
       )}
 
