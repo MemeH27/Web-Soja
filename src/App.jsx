@@ -209,7 +209,7 @@ function App() {
       .subscribe()
 
     return () => { supabase.removeChannel(sub) }
-  }, [activeOrder?.id, playToastSound])
+  }, [activeOrder?.id])
 
   // ─── Secret route detection (kept for backwards compat) ───────────────────
   useEffect(() => {
