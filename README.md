@@ -27,5 +27,7 @@ If you are developing a production application, we recommend using TypeScript wi
    - `supabase/push_dispatch_trigger.sql`
 3. Deploy edge function:
    - `supabase/functions/push-dispatch/index.ts`
+   - `supabase/functions/push-self-test/index.ts`
 4. Set function secrets as documented in:
    - `supabase/functions/push-dispatch/README.md`
+   - `supabase/functions/push-self-test/README.md`

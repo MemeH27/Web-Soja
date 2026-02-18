@@ -15,6 +15,7 @@ Edge Function que envia Web Push para eventos de `orders`.
 
 ```bash
 supabase functions deploy push-dispatch
+supabase functions deploy push-self-test
 ```
 
 ### SQL a ejecutar

@@ -145,6 +145,23 @@ export function usePushNotifications({ user, role = 'user' }) {
         debug('saveSubscription upsert success')
     }, [debug, role, user])
 
+    const sendSelfTestPush = useCallback(async () => {
+        const { error: invokeError } = await supabase.functions.invoke('push-self-test', {
+            body: {
+                title: 'SOJA',
+                body: 'Push activadas correctamente.',
+                url: '/',
+                tag: 'push-self-test',
+            },
+        })
+
+        if (invokeError) {
+            debug('self-test push skipped/fail', invokeError)
+        } else {
+            debug('self-test push sent')
+        }
+    }, [debug])
+
     const subscribe = useCallback(async () => {
         if (!isSupported) throw new Error('Este dispositivo no soporta Push Notifications.')
         if (!user) throw new Error('Necesitas iniciar sesion para activar notificaciones push.')
@@ -263,6 +280,8 @@ export function usePushNotifications({ user, role = 'user' }) {
             )
             setPhase('sync_after_save')
             await syncSubscriptionState()
+            setPhase('self_test_push')
+            await sendSelfTestPush()
             setPhase('done')
             debug('subscribe flow done')
             return { ok: true }
@@ -277,7 +296,7 @@ export function usePushNotifications({ user, role = 'user' }) {
             setLoading(false)
             if (!failed) setPhase('idle')
         }
-    }, [debug, isSupported, saveSubscription, syncSubscriptionState, user])
+    }, [debug, isSupported, saveSubscription, sendSelfTestPush, syncSubscriptionState, user])
 
     const unsubscribe = useCallback(async () => {
         if (!isSupported || !user) return
