@@ -86,7 +86,12 @@ export default function Admin({ setView }) {
             setUsersList(data)
         }
         if (error) {
-            console.error('❌ Error cargando usuarios:', error)
+            console.error('❌ Error cargando usuarios:', {
+                message: error.message,
+                hint: error.hint,
+                details: error.details,
+                code: error.code
+            })
             alert('Error al cargar usuarios: ' + error.message)
         }
         setLoadingUsers(false)
