@@ -90,11 +90,13 @@ function UserOrderStatusToast({ order, onDismiss }) {
 
   const statusLabel = order.status === 'pending'
     ? 'Pedido confirmado'
-    : order.status === 'prepared'
-      ? 'Tu pedido se esta preparando'
-      : order.status === 'shipped'
-        ? 'Tu pedido va en camino'
-        : 'Pedido entregado'
+    : order.status === 'cooking'
+      ? 'Tu pedido se esta cocinando 👨‍🍳'
+      : order.status === 'ready'
+        ? '¡Tu pedido esta listo! ✨'
+        : order.status === 'shipped'
+          ? 'Tu pedido va en camino 🛵'
+          : '¡Pedido entregado! Buen provecho 🥢'
 
   return (
     <div

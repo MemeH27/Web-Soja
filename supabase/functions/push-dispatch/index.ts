@@ -56,8 +56,9 @@ function getEventData(payload: DbWebhookPayload) {
 
 function statusLabel(status: string | null | undefined) {
   switch (status) {
-    case 'pending': return 'pendiente'
-    case 'prepared': return 'preparando'
+    case 'pending': return 'confirmado'
+    case 'cooking': return 'cocinándose'
+    case 'ready': return 'listo para entrega'
     case 'shipped': return 'en camino'
     case 'delivered': return 'entregado'
     default: return 'actualizado'
@@ -106,11 +107,23 @@ function buildNotifications(
     }
 
     if (record.user_id && oldRecord?.status !== record.status) {
+      let body = `Tu pedido #${orderCode} está ${statusLabel(record.status)}.`
+
+      if (record.status === 'delivered') {
+        body = `¡Tu pedido #${orderCode} ha sido entregado! Gracias por confiar en nosotros, ¡que tengas buen provecho! 🥢🍣`
+      } else if (record.status === 'ready') {
+        body = `¡Buenas noticias! Tu pedido #${orderCode} ya está listo.`
+      } else if (record.status === 'cooking') {
+        body = `¡Manos a la obra! Tu pedido #${orderCode} ya se está cocinando. 👨‍🍳`
+      } else if (record.status === 'shipped') {
+        body = `¡Tu pedido #${orderCode} va en camino! Prepárate para recibirlo. 🛵`
+      }
+
       jobs.push({
         target: 'user',
         userIds: [record.user_id],
         title: 'Actualización de tu pedido',
-        body: `Tu pedido #${orderCode} está ${statusLabel(record.status)}.`,
+        body,
         url: '/',
         tag: `order-status-${record.id}-${record.status}`,
       })

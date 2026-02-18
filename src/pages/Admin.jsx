@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { FaBox, FaStar, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaTimes, FaUser, FaClock, FaCheckCircle, FaMotorcycle, FaChevronDown, FaBars } from 'react-icons/fa'
+import { FaBox, FaStar, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaTimes, FaUser, FaClock, FaCheckCircle, FaMotorcycle, FaChevronDown, FaBars, FaMapMarkerAlt } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useMenu } from '../hooks/useMenu'
 import { useReviews } from '../hooks/useReviews'
 import { useAuth } from '../hooks/useAuth.jsx'
 import PushNotificationToggle from '../components/PushNotificationToggle'
+import OrderTracking from '../components/OrderTracking'
 
 export default function Admin({ setView }) {
     const { user, profile, role, signOut, loading: authLoading } = useAuth()
@@ -43,6 +44,7 @@ export default function Admin({ setView }) {
         )
     }
     const [activeTab, setActiveTab] = useState('products')
+    const [trackingOrder, setTrackingOrder] = useState(null)
     const { menu, loading: menuLoading, setMenu } = useMenu({ adminMode: true })
     const { reviews, loading: reviewsLoading, setReviews } = useReviews()
     const [usersList, setUsersList] = useState([])
@@ -258,6 +260,13 @@ export default function Admin({ setView }) {
                     <div className="flex items-center gap-4">
                         <PushNotificationToggle user={user} role="admin" compact />
                         <button
+                            onClick={handleLogout}
+                            className="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-4 py-2 rounded-xl border border-white/5 transition-all flex items-center gap-2 group text-sm font-bold"
+                        >
+                            <FaSignOutAlt className="group-hover:-translate-x-1 transition-transform" />
+                            <span className="hidden sm:inline">Cerrar Sesión</span>
+                        </button>
+                        <button
                             onClick={() => {
                                 if (activeTab === 'users') fetchUsers()
                                 if (activeTab === 'orders') fetchOrders()
@@ -283,7 +292,13 @@ export default function Admin({ setView }) {
                 {activeTab === 'products' ? (
                     <ProductsList products={menu} loading={menuLoading} onDelete={handleDeleteProduct} onEdit={(p) => { setEditingProduct(p); setShowProductModal(true); }} onToggleStock={handleToggleStock} />
                 ) : activeTab === 'orders' ? (
-                    <OrdersList orders={ordersList} loading={loadingOrders} deliveryUsers={deliveryUsers} onUpdate={fetchOrders} />
+                    <OrdersList
+                        orders={ordersList}
+                        loading={loadingOrders}
+                        deliveryUsers={deliveryUsers}
+                        onUpdate={fetchOrders}
+                        onTrack={(order) => setTrackingOrder(order)}
+                    />
                 ) : activeTab === 'users' ? (
                     <UsersList users={usersList} loading={loadingUsers} onUpdate={fetchUsers} />
                 ) : activeTab === 'delivery' ? (
@@ -302,6 +317,15 @@ export default function Admin({ setView }) {
                         // Better to re-fetch or update state locally
                         window.location.reload();
                     }}
+                />
+            )}
+
+            {/* Order Tracking Modal */}
+            {trackingOrder && (
+                <OrderTracking
+                    order={trackingOrder}
+                    onBack={() => setTrackingOrder(null)}
+                    isAdmin={true}
                 />
             )}
         </div>
@@ -477,11 +501,44 @@ function ProductModal({ onClose, product, onSave }) {
     )
 }
 
-function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
+function OrdersList({ orders, loading, deliveryUsers, onUpdate, onTrack }) {
     const [openDropdownId, setOpenDropdownId] = useState(null)
 
     if (loading) return <div className="p-8 text-gray-400">Cargando pedidos...</div>
     if (orders.length === 0) return <div className="text-gray-500 italic p-8 bg-[#111] rounded-2xl border border-white/5">No hay pedidos registrados en el sistema.</div>
+
+    const updateOrderStatus = async (orderId, newStatus) => {
+        const oldOrder = orders.find(o => o.id === orderId) || null
+
+        const { data: updatedOrder, error } = await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', orderId)
+            .select()
+            .single()
+
+        if (error) {
+            alert(error.message)
+            return
+        }
+
+        onUpdate()
+
+        // Notificar push al usuario del pedido
+        try {
+            await supabase.functions.invoke('push-dispatch', {
+                body: {
+                    type: 'UPDATE',
+                    schema: 'public',
+                    table: 'orders',
+                    record: updatedOrder,
+                    old_record: oldOrder,
+                },
+            })
+        } catch (pushErr) {
+            console.warn('⚠️ push-dispatch (updateOrderStatus) error:', pushErr)
+        }
+    }
 
     const assignDelivery = async (orderId, deliveryId) => {
         const oldOrder = orders.find(o => o.id === orderId) || null
@@ -565,78 +622,104 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
                             <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1 font-black">{order.delivery_type === 'delivery' ? 'A Domicilio' : 'Para llevar'}</p>
                         </div>
 
-                        <div className="flex items-center gap-3 w-full md:w-auto">
-                            {order.delivery_type === 'delivery' && (
-                                <div className="relative flex-1 md:flex-none">
-                                    <button
-                                        onClick={() => setOpenDropdownId(openDropdownId === order.id ? null : order.id)}
-                                        className="w-full md:w-64 bg-black border-2 border-[#e5242c]/30 hover:border-[#e5242c] rounded-2xl pl-12 pr-10 py-3 text-xs text-left text-white outline-none focus:ring-4 focus:ring-[#e5242c]/10 transition-all cursor-pointer font-black uppercase tracking-wider shadow-lg shadow-[#e5242c]/5 flex items-center justify-between"
-                                    >
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e5242c]">
-                                            <FaMotorcycle size={16} />
-                                        </div>
-                                        <span className="truncate">
-                                            {order.delivery_id
-                                                ? deliveryUsers.find(u => u.id === order.delivery_id)
-                                                    ? `${deliveryUsers.find(u => u.id === order.delivery_id).first_name} (${deliveryUsers.find(u => u.id === order.delivery_id).delivery_id_card})`
-                                                    : 'Asignado'
-                                                : 'Asignar Repartidor'}
-                                        </span>
-                                        <FaChevronDown size={12} className={`text-[#e5242c] transition-transform ${openDropdownId === order.id ? 'rotate-180' : ''}`} />
-                                    </button>
+                        {order.status === 'pending' && (
+                            <button
+                                onClick={() => updateOrderStatus(order.id, 'cooking')}
+                                className="w-12 h-12 bg-orange-500/10 hover:bg-orange-500 text-orange-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-orange-500/20 shadow-lg"
+                                title="Pasar a Cocina"
+                            >
+                                👨‍🍳
+                            </button>
+                        )}
+                        {order.status === 'cooking' && (
+                            <button
+                                onClick={() => updateOrderStatus(order.id, 'ready')}
+                                className="w-12 h-12 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-blue-500/20 shadow-lg"
+                                title="Marcar como Listo"
+                            >
+                                ✅
+                            </button>
+                        )}
+                        {order.status === 'shipped' && (
+                            <button
+                                onClick={() => onTrack(order)}
+                                className="w-12 h-12 bg-[#e5242c]/10 hover:bg-[#e5242c] text-[#e5242c] hover:text-white rounded-2xl flex items-center justify-center transition-all border border-[#e5242c]/20 shadow-lg"
+                                title="Rastrear Repartidor"
+                            >
+                                <FaMapMarkerAlt size={18} />
+                            </button>
+                        )}
+                        {order.delivery_type === 'delivery' && (order.status === 'ready' || order.status === 'pending' || order.status === 'cooking' || order.status === 'shipped') && (
+                            <div className="relative flex-1 md:flex-none">
+                                <button
+                                    onClick={() => setOpenDropdownId(openDropdownId === order.id ? null : order.id)}
+                                    className="w-full md:w-64 bg-black border-2 border-[#e5242c]/30 hover:border-[#e5242c] rounded-2xl pl-12 pr-10 py-3 text-xs text-left text-white outline-none focus:ring-4 focus:ring-[#e5242c]/10 transition-all cursor-pointer font-black uppercase tracking-wider shadow-lg shadow-[#e5242c]/5 flex items-center justify-between"
+                                >
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e5242c]">
+                                        <FaMotorcycle size={16} />
+                                    </div>
+                                    <span className="truncate">
+                                        {order.delivery_id
+                                            ? deliveryUsers.find(u => u.id === order.delivery_id)
+                                                ? `${deliveryUsers.find(u => u.id === order.delivery_id).first_name} (${deliveryUsers.find(u => u.id === order.delivery_id).delivery_id_card})`
+                                                : 'Asignado'
+                                            : 'Asignar Repartidor'}
+                                    </span>
+                                    <FaChevronDown size={12} className={`text-[#e5242c] transition-transform ${openDropdownId === order.id ? 'rotate-180' : ''}`} />
+                                </button>
 
-                                    {openDropdownId === order.id && (
-                                        <>
+                                {openDropdownId === order.id && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-[60]"
+                                            onClick={() => setOpenDropdownId(null)}
+                                        />
+                                        <div className="absolute top-full mt-2 left-0 right-0 bg-[#0c0c0c] border border-white/10 rounded-2xl overflow-visible shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[70] animate-in fade-in slide-in-from-top-2 duration-200 min-w-[200px]">
                                             <div
-                                                className="fixed inset-0 z-[60]"
-                                                onClick={() => setOpenDropdownId(null)}
-                                            />
-                                            <div className="absolute top-full mt-2 left-0 right-0 bg-[#0c0c0c] border border-white/10 rounded-2xl overflow-visible shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[70] animate-in fade-in slide-in-from-top-2 duration-200 min-w-[200px]">
-                                                <div
-                                                    onClick={() => { assignDelivery(order.id, null); setOpenDropdownId(null); }}
-                                                    className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 hover:bg-white/5 cursor-pointer border-b border-white/10 transition-colors first:rounded-t-2xl"
-                                                >
-                                                    Sin Asignar
-                                                </div>
-                                                <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                                                    {deliveryUsers.map(u => (
-                                                        <div
-                                                            key={u.id}
-                                                            onClick={() => {
-                                                                assignDelivery(order.id, u.id)
-                                                                setOpenDropdownId(null)
-                                                            }}
-                                                            className={`px-6 py-4 text-xs font-bold transition-all cursor-pointer flex items-center justify-between group/item border-b border-white/5 last:border-0
+                                                onClick={() => { assignDelivery(order.id, null); setOpenDropdownId(null); }}
+                                                className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 hover:bg-white/5 cursor-pointer border-b border-white/10 transition-colors first:rounded-t-2xl"
+                                            >
+                                                Sin Asignar
+                                            </div>
+                                            <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                                                {deliveryUsers.map(u => (
+                                                    <div
+                                                        key={u.id}
+                                                        onClick={() => {
+                                                            assignDelivery(order.id, u.id)
+                                                            setOpenDropdownId(null)
+                                                        }}
+                                                        className={`px-6 py-4 text-xs font-bold transition-all cursor-pointer flex items-center justify-between group/item border-b border-white/5 last:border-0
                                                                 ${order.delivery_id === u.id ? 'bg-[#e5242c] text-white' : 'text-gray-300 hover:bg-[#e5242c]/10 hover:text-white'}
                                                             `}
-                                                        >
-                                                            <span>{u.first_name} {u.last_name}</span>
-                                                            <span className={`text-[10px] font-black tracking-widest ${order.delivery_id === u.id ? 'text-white/60' : 'text-[#e5242c]'}`}>
-                                                                {u.delivery_id_card}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {deliveryUsers.length === 0 && (
-                                                    <div className="px-6 py-4 text-xs text-gray-500 italic">No hay repartidores activos</div>
-                                                )}
+                                                    >
+                                                        <span>{u.first_name} {u.last_name}</span>
+                                                        <span className={`text-[10px] font-black tracking-widest ${order.delivery_id === u.id ? 'text-white/60' : 'text-[#e5242c]'}`}>
+                                                            {u.delivery_id_card}
+                                                        </span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                            <button
-                                onClick={() => deleteOrder(order.id)}
-                                className="w-12 h-12 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-red-500/20 group/del shadow-lg"
-                                title="Eliminar Pedido"
-                            >
-                                <FaPlus className="rotate-45" size={18} />
-                            </button>
-                        </div>
+                                            {deliveryUsers.length === 0 && (
+                                                <div className="px-6 py-4 text-xs text-gray-500 italic">No hay repartidores activos</div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                        <button
+                            onClick={() => deleteOrder(order.id)}
+                            className="w-12 h-12 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-red-500/20 group/del shadow-lg"
+                            title="Eliminar Pedido"
+                        >
+                            <FaPlus className="rotate-45" size={18} />
+                        </button>
                     </div>
                 </div>
-            ))}
-        </div>
+            ))
+            }
+        </div >
     )
 }
 

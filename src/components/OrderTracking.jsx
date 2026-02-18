@@ -68,7 +68,7 @@ function MapBounds({ routeCoords }) {
     return null
 }
 
-export default function OrderTracking({ order, onBack, onCancel }) {
+export default function OrderTracking({ order, onBack, onCancel, isAdmin = false }) {
     const [statusStep, setStatusStep] = useState(0)
     const [motoPos, setMotoPos] = useState(RESTAURANT_POS)
     const [routeCoords, setRouteCoords] = useState([])
@@ -246,7 +246,7 @@ export default function OrderTracking({ order, onBack, onCancel }) {
                         })}
                     </div>
 
-                    {statusStep < 3 && (
+                    {statusStep < 3 && !isAdmin && (
                         <div className="mt-8 pt-6 border-t border-white/5">
                             <button
                                 onClick={onCancel}

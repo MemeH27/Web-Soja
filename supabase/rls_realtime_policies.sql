@@ -100,11 +100,24 @@ using (
 
 -- Public/guest read for delivery tracking on map.
 -- Needed because OrderTracking listens to updates in profiles for delivery location.
-create policy "profiles_select_delivery_public"
+-- Public/guest read for delivery tracking on map.
+-- Refined: Only allow reading delivery profile if the requester has an active order assigned to that delivery person.
+create policy "profiles_select_delivery_assigned"
 on public.profiles
 for select
-to anon, authenticated
-using (role = 'delivery');
+to authenticated
+using (
+  role = 'delivery' 
+  and (
+    public.is_admin(auth.uid())
+    or exists (
+      select 1 
+      from public.orders o 
+      where o.delivery_id = public.profiles.id 
+      and o.user_id = auth.uid()
+    )
+  )
+);
 
 -- Update own profile + admin update any profile
 create policy "profiles_update_self_or_admin"

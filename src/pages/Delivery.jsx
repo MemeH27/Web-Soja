@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FaMotorcycle, FaBox, FaMapMarkerAlt, FaCheckCircle, FaSignOutAlt, FaPhone, FaClock, FaTimes, FaUser, FaArrowRight } from 'react-icons/fa'
+import { FaMotorcycle, FaBox, FaMapMarkerAlt, FaCheckCircle, FaSignOutAlt, FaPhone, FaClock, FaTimes, FaUser, FaArrowRight, FaEye, FaEyeSlash } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
 import PushNotificationToggle from '../components/PushNotificationToggle'
@@ -70,6 +70,7 @@ export default function Delivery({ setView }) {
     const [watchId, setWatchId] = useState(null)
     const [deliveryToastOrder, setDeliveryToastOrder] = useState(null)
     const [showNewDeliveryModal, setShowNewDeliveryModal] = useState(false)
+    const [showCode, setShowCode] = useState(false)
 
     const playDeliveryToastSound = useCallback(() => {
         try {
@@ -176,9 +177,12 @@ export default function Delivery({ setView }) {
             startTracking()
         } else if (newStatus === 'delivered') {
             stopTracking()
+            setDeliveryView('delivered_success')
         }
 
-        fetchAssignedOrders()
+        if (newStatus !== 'delivered') {
+            fetchAssignedOrders()
+        }
 
         // Notificar push al usuario del pedido
         try {
@@ -417,6 +421,32 @@ export default function Delivery({ setView }) {
                 </div>
             )
         }
+        if (deliveryView === 'delivered_success') {
+            return (
+                <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6 text-center">
+                    <div className="bg-[#111] border border-green-500/30 p-10 rounded-[3rem] w-full max-w-md animate-in zoom-in duration-500">
+                        <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center text-green-500 mx-auto mb-6">
+                            <FaCheckCircle size={48} />
+                        </div>
+                        <h2 className="text-3xl font-black mb-3">¡Excelente Trabajo! 🛵</h2>
+                        <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+                            Has entregado el pedido con éxito. Gracias por ser parte del equipo de SOJA.
+                            <br /><br />
+                            <span className="text-white font-bold">"Buen provecho y gracias por comprar con nosotros"</span>
+                        </p>
+                        <button
+                            onClick={() => {
+                                setDeliveryView('login')
+                                fetchAssignedOrders()
+                            }}
+                            className="bg-green-600 text-white w-full py-5 rounded-2xl font-black hover:bg-green-700 transition-all uppercase tracking-widest text-sm shadow-xl shadow-green-600/20"
+                        >
+                            Volver a Inicio
+                        </button>
+                    </div>
+                </div>
+            )
+        }
     }
 
     // --- DASHBOARD DE REPARTO (LOGUEADO) ---
@@ -446,6 +476,12 @@ export default function Delivery({ setView }) {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    {watchId && (
+                        <div className="flex items-center gap-1.5 bg-green-500/10 text-green-500 px-3 py-1.5 rounded-lg border border-green-500/20 animate-pulse">
+                            <FaMapMarkerAlt size={10} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">GPS Activo</span>
+                        </div>
+                    )}
                     <PushNotificationToggle user={user} role="delivery" compact />
                     <button
                         onClick={fetchAssignedOrders}
@@ -471,11 +507,20 @@ export default function Delivery({ setView }) {
                     </p>
                 </div>
 
-                <div className="mb-8 bg-[#111] border border-[#e5242c]/30 rounded-3xl p-6 text-center shadow-xl">
+                <div className="mb-8 bg-[#111] border border-[#e5242c]/30 rounded-3xl p-6 text-center shadow-xl relative group">
                     <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-[0.22rem] mb-2">Tu Codigo de Acceso</p>
-                    <p className="text-white text-5xl md:text-6xl font-black tracking-[0.55rem] leading-none">
-                        {profile?.delivery_id_card || '----'}
-                    </p>
+                    <div className="flex items-center justify-center gap-4">
+                        <p className="text-white text-5xl md:text-6xl font-black tracking-[0.55rem] leading-none transition-all duration-300">
+                            {showCode ? (profile?.delivery_id_card || '----') : '••••'}
+                        </p>
+                        <button
+                            onClick={() => setShowCode(!showCode)}
+                            className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center text-gray-400 hover:text-white transition-all border border-white/5"
+                            title={showCode ? "Ocultar Código" : "Mostrar Código"}
+                        >
+                            {showCode ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                        </button>
+                    </div>
                     <p className="text-gray-500 text-xs mt-3 uppercase tracking-wider">No lo compartas con nadie</p>
                 </div>
 
