@@ -55,6 +55,7 @@ export function usePushNotifications({ user, role = 'user' }) {
     const [isSubscribed, setIsSubscribed] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
+    const [phase, setPhase] = useState('idle')
 
     const isSupported = useMemo(() => {
         return typeof window !== 'undefined'
@@ -63,11 +64,23 @@ export function usePushNotifications({ user, role = 'user' }) {
             && 'Notification' in window
     }, [])
 
-    const syncSubscriptionState = useCallback(async () => {
-        if (!isSupported || !user) {
-            setIsSubscribed(false)
+    const debug = useCallback((message, extra = null) => {
+        const id = user?.id ? user.id.slice(0, 8) : 'guest'
+        if (extra !== null) {
+            console.log(`[push:${role}:${id}] ${message}`, extra)
             return
         }
+        console.log(`[push:${role}:${id}] ${message}`)
+    }, [role, user?.id])
+
+    const syncSubscriptionState = useCallback(async () => {
+        setPhase('sync_state')
+        if (!isSupported || !user) {
+            setIsSubscribed(false)
+            setPhase('idle')
+            return
+        }
+        debug('syncSubscriptionState start')
         const registration = await withTimeout(
             navigator.serviceWorker.ready,
             10000,
@@ -79,12 +92,15 @@ export function usePushNotifications({ user, role = 'user' }) {
             'No se pudo leer la suscripcion Push.'
         )
         setIsSubscribed(Boolean(sub))
-    }, [isSupported, user])
+        debug('syncSubscriptionState done', { hasSubscription: Boolean(sub) })
+        setPhase('idle')
+    }, [debug, isSupported, user])
 
     const saveSubscription = useCallback(async (subscription) => {
         if (!user) throw new Error('Necesitas iniciar sesion para activar notificaciones push.')
 
         const { endpoint, p256dh, auth } = getSubscriptionKeys(subscription)
+        debug('saveSubscription payload ready', { endpoint: endpoint?.slice(0, 60) })
         const payload = {
             user_id: user.id,
             role,
@@ -101,7 +117,8 @@ export function usePushNotifications({ user, role = 'user' }) {
             .upsert(payload, { onConflict: 'user_id,endpoint' })
 
         if (upsertError) throw upsertError
-    }, [role, user])
+        debug('saveSubscription upsert success')
+    }, [debug, role, user])
 
     const subscribe = useCallback(async () => {
         if (!isSupported) throw new Error('Este dispositivo no soporta Push Notifications.')
@@ -113,32 +130,42 @@ export function usePushNotifications({ user, role = 'user' }) {
 
         setLoading(true)
         setError(null)
+        setPhase('starting')
+        debug('subscribe start')
+        let failed = false
         try {
+            setPhase('service_worker_ready')
             const registration = await withTimeout(
                 navigator.serviceWorker.ready,
                 10000,
                 'No se pudo obtener el Service Worker.'
             )
+            debug('service worker ready ok')
             let nextPermission = Notification.permission
 
             if (nextPermission !== 'granted') {
+                setPhase('request_permission')
+                debug('requesting notification permission')
                 nextPermission = await withTimeout(
                     Notification.requestPermission(),
                     15000,
                     'El permiso de notificaciones no respondio a tiempo.'
                 )
                 setPermission(nextPermission)
+                debug('permission result', nextPermission)
             }
             if (nextPermission !== 'granted') {
                 throw new Error('Permiso de notificaciones denegado.')
             }
 
+            setPhase('read_existing_subscription')
             let subscription = await withTimeout(
                 registration.pushManager.getSubscription(),
                 10000,
                 'No se pudo leer la suscripcion Push.'
             )
             if (!subscription) {
+                setPhase('create_subscription')
                 const subscribeAttempt = async () => registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
@@ -150,7 +177,9 @@ export function usePushNotifications({ user, role = 'user' }) {
                         15000,
                         'No se pudo crear la suscripcion Push.'
                     )
+                    debug('subscribe created on first attempt')
                 } catch (firstErr) {
+                    debug('first subscribe attempt failed, trying cleanup + retry', firstErr)
                     const stale = await registration.pushManager.getSubscription()
                     if (stale) {
                         try { await stale.unsubscribe() } catch (_) { }
@@ -160,28 +189,41 @@ export function usePushNotifications({ user, role = 'user' }) {
                         15000,
                         mapPushError(firstErr)
                     )
+                    debug('subscribe created after retry')
                 }
             }
 
+            setPhase('save_subscription_db')
             await withTimeout(
                 saveSubscription(subscription),
                 10000,
                 'No se pudo guardar la suscripcion en la base de datos.'
             )
+            setPhase('sync_after_save')
             await syncSubscriptionState()
+            setPhase('done')
+            debug('subscribe flow done')
             return { ok: true }
         } catch (err) {
-            setError(mapPushError(err))
+            failed = true
+            const mapped = mapPushError(err)
+            setError(mapped)
+            setPhase('error')
+            debug('subscribe flow failed', { raw: err, mapped })
             return { ok: false, error: err }
         } finally {
             setLoading(false)
+            if (!failed) setPhase('idle')
         }
-    }, [isSupported, saveSubscription, syncSubscriptionState, user])
+    }, [debug, isSupported, saveSubscription, syncSubscriptionState, user])
 
     const unsubscribe = useCallback(async () => {
         if (!isSupported || !user) return
         setLoading(true)
         setError(null)
+        setPhase('unsubscribe_start')
+        debug('unsubscribe start')
+        let failed = false
         try {
             const registration = await withTimeout(
                 navigator.serviceWorker.ready,
@@ -214,13 +256,20 @@ export function usePushNotifications({ user, role = 'user' }) {
 
             await syncSubscriptionState()
             setIsSubscribed(false)
+            setPhase('done')
+            debug('unsubscribe done')
         } catch (err) {
-            setError(err.message || 'No se pudo desactivar notificaciones push.')
+            failed = true
+            const mapped = mapPushError(err)
+            setError(mapped)
+            setPhase('error')
+            debug('unsubscribe failed', { raw: err, mapped })
             return { ok: false, error: err }
         } finally {
             setLoading(false)
+            if (!failed) setPhase('idle')
         }
-    }, [isSupported, syncSubscriptionState, user])
+    }, [debug, isSupported, syncSubscriptionState, user])
 
     useEffect(() => {
         if (!isSupported) return
@@ -228,8 +277,24 @@ export function usePushNotifications({ user, role = 'user' }) {
     }, [isSupported])
 
     useEffect(() => {
-        syncSubscriptionState().catch(() => setIsSubscribed(false))
+        syncSubscriptionState().catch((err) => {
+            debug('initial sync failed', err)
+            setIsSubscribed(false)
+            setPhase('error')
+            setError(mapPushError(err))
+        })
     }, [syncSubscriptionState])
+
+    useEffect(() => {
+        if (!loading) return
+        const watchdog = setTimeout(() => {
+            setLoading(false)
+            setPhase('error')
+            setError('El proceso tardó demasiado. Recarga la página y vuelve a intentar.')
+            debug('global loading watchdog fired')
+        }, 30000)
+        return () => clearTimeout(watchdog)
+    }, [debug, loading])
 
     return {
         isSupported,
@@ -237,6 +302,7 @@ export function usePushNotifications({ user, role = 'user' }) {
         isSubscribed,
         loading,
         error,
+        phase,
         subscribe,
         unsubscribe,
         syncSubscriptionState,

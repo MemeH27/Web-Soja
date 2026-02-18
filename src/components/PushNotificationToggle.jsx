@@ -7,6 +7,7 @@ export default function PushNotificationToggle({ user, role = 'user', compact = 
         isSubscribed,
         loading,
         error,
+        phase,
         subscribe,
         unsubscribe,
     } = usePushNotifications({ user, role })
@@ -36,6 +37,9 @@ export default function PushNotificationToggle({ user, role = 'user', compact = 
             >
                 {loading ? 'Configurando...' : label}
             </button>
+            {loading && (
+                <p className="text-[11px] text-gray-400">Paso: {phase}</p>
+            )}
             {isDenied && (
                 <p className="text-[11px] text-yellow-500">Notificaciones bloqueadas en el navegador.</p>
             )}
