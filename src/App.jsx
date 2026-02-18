@@ -21,6 +21,8 @@ import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 import Delivery from './pages/Delivery'
 import RoleGuard from './components/RoleGuard'
+import MyOrders from './pages/MyOrders'
+
 
 
 // ─── New Order Notification ───────────────────────────────────────────────────
@@ -154,7 +156,9 @@ export default function App() {
       case 'tracking': navigate('/tracking'); break;
       case 'profile': navigate('/profile'); break;
       case 'order': navigate('/order'); break;
+      case 'my-orders': navigate('/my-orders'); break;
       default: navigate('/');
+
     }
   }
 
@@ -417,10 +421,23 @@ export default function App() {
     setShowSuccessModal(true)
   }
 
-  function handleCancelOrder() {
+  async function handleCancelOrder() {
+    if (!activeOrder) return
     if (window.confirm('¿Estas seguro que deseas cancelar tu pedido?')) {
-      setActiveOrder(null)
-      navigate('/')
+      try {
+        const { error } = await supabase
+          .from('orders')
+          .update({ status: 'cancelled' })
+          .eq('id', activeOrder.id)
+
+        if (error) throw error
+
+        setActiveOrder(null)
+        localStorage.removeItem('soja_active_order_id')
+        navigate('/')
+      } catch (err) {
+        alert('Error al cancelar el pedido: ' + err.message)
+      }
     }
   }
 
@@ -502,6 +519,10 @@ export default function App() {
         <Route path="/profile" element={
           <Profile onBack={() => navigate('/')} />
         } />
+        <Route path="/my-orders" element={
+          <MyOrders onBack={() => navigate('/')} />
+        } />
+
         <Route path="/order" element={
           <Order
             setView={setView}

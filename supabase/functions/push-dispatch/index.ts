@@ -61,6 +61,7 @@ function statusLabel(status: string | null | undefined) {
     case 'ready': return 'listo para entrega'
     case 'shipped': return 'en camino'
     case 'delivered': return 'entregado'
+    case 'cancelled': return 'cancelado'
     default: return 'actualizado'
   }
 }
@@ -140,6 +141,31 @@ async function buildNotifications(
         url: '/tracking',
         tag: `order-status-${record.id}-${record.status}`,
       })
+    }
+
+    // Si se cancela el pedido
+    if (record.status === 'cancelled' && oldRecord?.status !== 'cancelled') {
+      // Notificar a admins
+      jobs.push({
+        target: 'admins',
+        userIds: [],
+        title: 'Pedido Cancelado ❌',
+        body: `El pedido #${orderCode} ha sido cancelado por el cliente.`,
+        url: '/adminpanel',
+        tag: `order-cancelled-admin-${record.id}`,
+      })
+
+      // Notificar a repartidor si existe
+      if (record.delivery_id) {
+        jobs.push({
+          target: 'delivery',
+          userIds: [record.delivery_id],
+          title: 'Pedido Cancelado ❌',
+          body: `El pedido #${orderCode} que tenías asignado ha sido cancelado.`,
+          url: '/deliverypanel',
+          tag: `order-cancelled-delivery-${record.id}`,
+        })
+      }
     }
   }
 

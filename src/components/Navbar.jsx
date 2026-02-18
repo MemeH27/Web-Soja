@@ -49,6 +49,13 @@ export default function Navbar({ setView, user, setShowAuthModal }) {
                         <div className="flex items-center gap-3">
                             <PushNotificationToggle user={user} role={activeRole} compact />
                             <button
+                                onClick={() => setView('my-orders')}
+                                className="text-white hover:text-[#e5242c] font-medium transition-colors text-sm uppercase tracking-wider flex items-center gap-2"
+                                title="Mis Pedidos"
+                            >
+                                <FaClock size={16} /> Mis Pedidos
+                            </button>
+                            <button
                                 onClick={() => setView('profile')}
                                 className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-full flex items-center gap-2 text-sm font-bold transition-all border border-white/10"
                                 title="Mi Perfil"
@@ -113,6 +120,12 @@ export default function Navbar({ setView, user, setShowAuthModal }) {
                                 <div className="pb-4 border-b border-white/20">
                                     <PushNotificationToggle user={user} role={activeRole} />
                                 </div>
+                                <button
+                                    onClick={() => { setView('my-orders'); setMobileMenuOpen(false); }}
+                                    className="text-xl text-white font-bold hover:text-[#e5242c] transition-colors border-b border-white/20 pb-4 text-left flex items-center gap-3"
+                                >
+                                    <FaClock /> Mis Pedidos
+                                </button>
                                 <button
                                     onClick={() => { setView('profile'); setMobileMenuOpen(false); }}
                                     className="text-xl text-white font-bold hover:text-[#e5242c] transition-colors border-b border-white/20 pb-4 text-left flex items-center gap-3"

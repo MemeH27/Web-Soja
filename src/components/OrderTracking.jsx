@@ -259,10 +259,10 @@ export default function OrderTracking({ order, onBack, onCancel, isAdmin = false
                         <div className="mt-8 pt-6 border-t border-white/5">
                             <button
                                 onClick={onCancel}
-                                className="w-full flex items-center justify-center gap-2 text-red-500/70 hover:text-red-500 hover:bg-red-500/10 py-3 rounded-xl transition-all duration-300 font-bold text-xs uppercase tracking-wider group"
+                                className="w-full flex items-center justify-center gap-3 text-red-500/50 hover:text-red-500 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/30 py-4 rounded-2xl transition-all duration-300 font-black text-[10px] uppercase tracking-[0.2rem] group"
                             >
                                 <FaBan className="group-hover:rotate-12 transition-transform" />
-                                <span>Cancelar Pedido en curso</span>
+                                <span>Cancelar Pedido</span>
                             </button>
                         </div>
                     )}
