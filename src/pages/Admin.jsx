@@ -393,6 +393,18 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
         else onUpdate()
     }
 
+    const deleteOrder = async (orderId) => {
+        if (window.confirm('¿Estás seguro de eliminar este pedido permanentemente?')) {
+            const { error } = await supabase
+                .from('orders')
+                .delete()
+                .eq('id', orderId)
+
+            if (error) alert(error.message)
+            else onUpdate()
+        }
+    }
+
     return (
         <div className="grid gap-6">
             {orders.map(order => (
@@ -427,10 +439,10 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
                             <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1 font-black">{order.delivery_type === 'delivery' ? 'A Domicilio' : 'Para llevar'}</p>
                         </div>
 
-                        {order.delivery_type === 'delivery' && (
-                            <div className="w-full md:w-auto">
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            {order.delivery_type === 'delivery' && (
                                 <select
-                                    className="bg-black/50 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-[#e5242c] transition-colors"
+                                    className="flex-1 md:flex-none bg-black/50 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-[#e5242c] transition-colors"
                                     value={order.delivery_id || ''}
                                     onChange={(e) => assignDelivery(order.id, e.target.value)}
                                 >
@@ -439,8 +451,15 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
                                         <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
                                     ))}
                                 </select>
-                            </div>
-                        )}
+                            )}
+                            <button
+                                onClick={() => deleteOrder(order.id)}
+                                className="w-10 h-10 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center transition-all border border-red-500/20"
+                                title="Eliminar Pedido"
+                            >
+                                <FaPlus className="rotate-45" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             ))}
