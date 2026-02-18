@@ -4,9 +4,54 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
 
 export default function Delivery({ setView }) {
-    const { profile, signOut, user, loading: authLoading } = useAuth()
+    const { profile, signOut, user, loading: authLoading, refreshProfile } = useAuth()
     const [orders, setOrders] = useState([])
     const [loading, setLoading] = useState(true)
+    const [isOnboarding, setIsOnboarding] = useState(false)
+    const [onboardingData, setOnboardingData] = useState({ firstName: '', lastName: '' })
+
+    // Check if delivery staff needs onboarding (missing Code)
+    useEffect(() => {
+        if (profile && profile.role === 'delivery' && !profile.delivery_number) {
+            setIsOnboarding(true)
+        } else {
+            setIsOnboarding(false)
+        }
+    }, [profile])
+
+    const handleOnboarding = async (e) => {
+        e.preventDefault()
+        setLoading(true)
+
+        try {
+            // Generar un número de repartidor basado en el total de repartidores + 1
+            const { count } = await supabase
+                .from('profiles')
+                .select('*', { count: 'exact', head: true })
+                .eq('role', 'delivery')
+
+            const nextNum = `REP-${String(count + 1).padStart(3, '0')}`
+            const nextId = `ID-${Math.floor(1000 + Math.random() * 9000)}`
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    first_name: onboardingData.firstName,
+                    last_name: onboardingData.lastName,
+                    delivery_number: nextNum,
+                    delivery_id_card: nextId
+                })
+                .eq('id', user.id)
+
+            if (error) throw error
+            await refreshProfile()
+            setIsOnboarding(false)
+        } catch (err) {
+            alert('Error en registro: ' + err.message)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     // Loading state while verifying role
     if (authLoading) {
@@ -69,13 +114,59 @@ export default function Delivery({ setView }) {
         setView('home')
     }
 
+    if (isOnboarding) {
+        return (
+            <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
+                <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md animate-in zoom-in duration-500">
+                    <div className="flex justify-center mb-6">
+                        <div className="w-20 h-20 bg-[#e5242c]/10 rounded-full flex items-center justify-center text-[#e5242c]">
+                            <FaMotorcycle size={40} />
+                        </div>
+                    </div>
+                    <h2 className="text-2xl font-bold text-center mb-2">Registro de Repartidor</h2>
+                    <p className="text-gray-500 text-center text-sm mb-8">Parece que es tu primer ingreso. Por favor, completa tu perfil profesional.</p>
+
+                    <form onSubmit={handleOnboarding} className="space-y-4">
+                        <input
+                            type="text"
+                            placeholder="Nombre(s)"
+                            required
+                            className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
+                            value={onboardingData.firstName}
+                            onChange={e => setOnboardingData({ ...onboardingData, firstName: e.target.value })}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Apellido(s)"
+                            required
+                            className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
+                            value={onboardingData.lastName}
+                            onChange={e => setOnboardingData({ ...onboardingData, lastName: e.target.value })}
+                        />
+                        <button
+                            disabled={loading}
+                            className="w-full bg-[#e5242c] text-white py-4 rounded-2xl font-bold hover:bg-[#c41e25] transition-all disabled:opacity-50 mt-4"
+                        >
+                            {loading ? 'Generando ID...' : 'Comenzar a Trabajar'}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white">
             {/* Header */}
             <header className="bg-[#111] border-b border-white/10 p-6 sticky top-0 z-10 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <img src="/img/logo/logo_blanco.png" alt="SOJA" className="h-8" />
-                    <span className="bg-[#e5242c] text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Repartidor</span>
+                    <div className="flex flex-col">
+                        <span className="bg-[#e5242c] text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest w-fit">Repartidor</span>
+                        <span className="text-[10px] text-gray-400 mt-1 font-mono uppercase tracking-tighter">
+                            {profile?.first_name} | {profile?.delivery_number}
+                        </span>
+                    </div>
                 </div>
                 <button onClick={handleLogout} className="text-gray-500 hover:text-white transition-colors">
                     <FaSignOutAlt size={20} />
@@ -84,8 +175,10 @@ export default function Delivery({ setView }) {
 
             <main className="p-6 max-w-md mx-auto">
                 <div className="mb-8">
-                    <h2 className="text-2xl font-bold mb-2">Hola, {profile?.first_name} 👋</h2>
-                    <p className="text-gray-500 text-sm">Tienes {orders.length} pedidos pendientes de entrega.</p>
+                    <h2 className="text-2xl font-bold mb-2">Dashboard de Entregas 🛵</h2>
+                    <p className="text-gray-500 text-sm">
+                        Bienvenido, <strong>{profile?.first_name} {profile?.last_name}</strong>.
+                    </p>
                 </div>
 
                 {loading ? (

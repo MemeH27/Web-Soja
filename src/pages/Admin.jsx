@@ -82,7 +82,8 @@ export default function Admin({ setView }) {
 
         if (data) {
             console.log('✅ Usuarios recibidos:', data.length, data)
-            setUsersList(data)
+            // Filtramos para que NO aparezcan los repartidores en esta lista
+            setUsersList(data.filter(u => u.role !== 'delivery'))
         }
         if (error) {
             console.error('❌ Error cargando usuarios:', {
