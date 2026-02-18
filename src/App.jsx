@@ -1,4 +1,5 @@
 ﻿import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import './App.css'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
@@ -19,6 +20,7 @@ import { supabase } from './supabaseClient'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 import Delivery from './pages/Delivery'
+import RoleGuard from './components/RoleGuard'
 
 // ─── Role Guard Component ─────────────────────────────────────────────────────
 function RoleGuard({ children, requiredRole, user, role, loading }) {
