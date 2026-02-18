@@ -9,7 +9,7 @@ const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:admin@example.com
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-push-webhook-secret',
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -23,12 +23,6 @@ function jsonResponse(body: unknown, status = 200) {
       'Content-Type': 'application/json',
     },
   })
-}
-
-function getBearerToken(req: Request) {
-  const raw = req.headers.get('authorization') || req.headers.get('Authorization') || ''
-  if (!raw.toLowerCase().startsWith('bearer ')) return ''
-  return raw.slice(7).trim()
 }
 
 Deno.serve(async (req) => {
@@ -47,13 +41,16 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Missing VAPID env vars' }, 500)
   }
 
-  const token = getBearerToken(req)
+  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
+  const token = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : ''
+
   if (!token) {
     return jsonResponse({ error: 'Missing bearer token' }, 401)
   }
 
   const { data: authData, error: authError } = await supabase.auth.getUser(token)
   if (authError || !authData?.user) {
+    console.error('Auth error in self-test:', authError)
     return jsonResponse({ error: 'Unauthorized user token' }, 401)
   }
 
