@@ -76,21 +76,64 @@ export function AuthProvider({ children }) {
         return { data, error }
     }
 
+    const registerStaff = async (firstName, lastName, phone) => {
+        // Generar un código de 4 dígitos único
+        const code = Math.floor(1000 + Math.random() * 9000).toString()
+        const email = `s${code}@soja.me`
+        const password = 'deliverysoja26'
+
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { first_name: firstName, last_name: lastName }
+            }
+        })
+
+        if (signUpError) return { error: signUpError }
+
+        // Actualizar el perfil inmediatamente
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+                role: 'delivery',
+                delivery_id_card: code,
+                first_name: firstName,
+                last_name: lastName,
+                phone: phone
+            })
+            .eq('id', authData.user.id)
+
+        return { code, error: profileError }
+    }
+
+    const signInWithCode = async (code) => {
+        const email = `s${code}@soja.me`
+        const password = 'deliverysoja26'
+        return await signIn(email, password)
+    }
+
+    const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password })
+    const signUp = (email, password, metadata) => supabase.auth.signUp({
+        email,
+        password,
+        options: {
+            data: metadata || {}
+        }
+    })
+    const signOut = () => supabase.auth.signOut()
+
     const value = {
         user,
         profile,
         role,
         loading,
-        signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
-        signUp: (email, password, metadata) => supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: metadata || {}
-            }
-        }),
-        signOut: () => supabase.auth.signOut(),
+        signIn,
+        signInWithCode,
+        signUp,
+        signOut,
         updateProfile,
+        registerStaff,
         refreshProfile: () => user && fetchProfile(user.id)
     }
 

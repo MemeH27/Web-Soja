@@ -4,69 +4,17 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
 
 export default function Delivery({ setView }) {
-    const { profile, signOut, user, loading: authLoading, refreshProfile } = useAuth()
+    const { profile, signOut, user, loading: authLoading, signInWithCode, registerStaff } = useAuth()
     const [orders, setOrders] = useState([])
     const [loading, setLoading] = useState(true)
-    const [isOnboarding, setIsOnboarding] = useState(false)
-    const [onboardingData, setOnboardingData] = useState({ firstName: '', lastName: '' })
-
-    // Check if delivery staff needs onboarding (missing Code)
-    useEffect(() => {
-        if (profile && profile.role === 'delivery' && !profile.delivery_number) {
-            setIsOnboarding(true)
-        } else {
-            setIsOnboarding(false)
-        }
-    }, [profile])
-
-    const handleOnboarding = async (e) => {
-        e.preventDefault()
-        setLoading(true)
-
-        try {
-            // Generar un número de repartidor basado en el total de repartidores + 1
-            const { count } = await supabase
-                .from('profiles')
-                .select('*', { count: 'exact', head: true })
-                .eq('role', 'delivery')
-
-            const nextNum = `REP-${String(count + 1).padStart(3, '0')}`
-            const nextId = `ID-${Math.floor(1000 + Math.random() * 9000)}`
-
-            const { error } = await supabase
-                .from('profiles')
-                .update({
-                    first_name: onboardingData.firstName,
-                    last_name: onboardingData.lastName,
-                    delivery_number: nextNum,
-                    delivery_id_card: nextId
-                })
-                .eq('id', user.id)
-
-            if (error) throw error
-            await refreshProfile()
-            setIsOnboarding(false)
-        } catch (err) {
-            alert('Error en registro: ' + err.message)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    // Loading state while verifying role
-    if (authLoading) {
-        return (
-            <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center">
-                <div className="w-12 h-12 border-4 border-[#e5242c] border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-gray-500 animate-pulse">Cargando panel de entregas...</p>
-            </div>
-        )
-    }
+    const [view, setLocalView] = useState('login') // 'login', 'register', 'showCode'
+    const [accessCode, setAccessCode] = useState('')
+    const [newStaffData, setNewStaffData] = useState({ firstName: '', lastName: '', phone: '' })
+    const [generatedCode, setGeneratedCode] = useState('')
 
     useEffect(() => {
-        if (user) {
+        if (user && profile) {
             fetchAssignedOrders()
-
             // Suscribirse a cambios en tiempo real
             const subscription = supabase
                 .channel('delivery_orders')
@@ -84,7 +32,7 @@ export default function Delivery({ setView }) {
                 supabase.removeChannel(subscription)
             }
         }
-    }, [user])
+    }, [user, profile])
 
     const fetchAssignedOrders = async () => {
         setLoading(true)
@@ -109,52 +57,179 @@ export default function Delivery({ setView }) {
         else fetchAssignedOrders()
     }
 
-    const handleLogout = async () => {
-        await signOut()
-        setView('home')
+    const handleCodeLogin = async (e) => {
+        e.preventDefault()
+        setLoading(true)
+        try {
+            const { error } = await signInWithCode(accessCode)
+            if (error) throw new Error('Código no válido o trabajador no encontrado')
+        } catch (err) {
+            alert(err.message)
+        } finally {
+            setLoading(false)
+        }
     }
 
-    if (isOnboarding) {
-        return (
-            <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
-                <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md animate-in zoom-in duration-500">
-                    <div className="flex justify-center mb-6">
-                        <div className="w-20 h-20 bg-[#e5242c]/10 rounded-full flex items-center justify-center text-[#e5242c]">
-                            <FaMotorcycle size={40} />
-                        </div>
-                    </div>
-                    <h2 className="text-2xl font-bold text-center mb-2">Registro de Repartidor</h2>
-                    <p className="text-gray-500 text-center text-sm mb-8">Parece que es tu primer ingreso. Por favor, completa tu perfil profesional.</p>
+    const handleRegisterStaff = async (e) => {
+        e.preventDefault()
+        setLoading(true)
+        try {
+            const { code, error } = await registerStaff(
+                newStaffData.firstName,
+                newStaffData.lastName,
+                newStaffData.phone
+            )
+            if (error) throw error
+            setGeneratedCode(code)
+            setLocalView('showCode')
+        } catch (err) {
+            alert(err.message)
+        } finally {
+            setLoading(false)
+        }
+    }
 
-                    <form onSubmit={handleOnboarding} className="space-y-4">
-                        <input
-                            type="text"
-                            placeholder="Nombre(s)"
-                            required
-                            className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
-                            value={onboardingData.firstName}
-                            onChange={e => setOnboardingData({ ...onboardingData, firstName: e.target.value })}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Apellido(s)"
-                            required
-                            className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
-                            value={onboardingData.lastName}
-                            onChange={e => setOnboardingData({ ...onboardingData, lastName: e.target.value })}
-                        />
-                        <button
-                            disabled={loading}
-                            className="w-full bg-[#e5242c] text-white py-4 rounded-2xl font-bold hover:bg-[#c41e25] transition-all disabled:opacity-50 mt-4"
-                        >
-                            {loading ? 'Generando ID...' : 'Comenzar a Trabajar'}
-                        </button>
-                    </form>
-                </div>
+    const handleLogout = async () => {
+        await signOut()
+        setLocalView('login')
+        setAccessCode('')
+    }
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center">
+                <div className="w-12 h-12 border-4 border-[#e5242c] border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-gray-500 animate-pulse">Verificando acceso...</p>
             </div>
         )
     }
 
+    // --- VISTAS DE LOGIN / REGISTRO ---
+    if (!user) {
+        if (view === 'login') {
+            return (
+                <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
+                    <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md animate-in zoom-in duration-500 text-center">
+                        <div className="w-20 h-20 bg-[#e5242c]/10 rounded-full flex items-center justify-center text-[#e5242c] mx-auto mb-6">
+                            <FaMotorcycle size={40} />
+                        </div>
+                        <h2 className="text-2xl font-bold mb-2">Portal de Reparto</h2>
+                        <p className="text-gray-500 text-sm mb-8">Ingresa tu código de acceso para ver tus pedidos.</p>
+
+                        <form onSubmit={handleCodeLogin} className="space-y-4 text-left">
+                            <div className="space-y-2">
+                                <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black ml-4">Código de Acceso</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: 1542"
+                                    required
+                                    className="w-full bg-black/50 border border-white/10 rounded-2xl py-5 px-6 outline-none focus:border-[#e5242c] transition-all text-center text-3xl font-bold tracking-[1rem] placeholder:tracking-normal placeholder:text-lg"
+                                    value={accessCode}
+                                    onChange={e => setAccessCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                />
+                            </div>
+                            <button
+                                disabled={loading || accessCode.length < 4}
+                                className="w-full bg-[#e5242c] text-white py-5 rounded-2xl font-bold hover:bg-[#c41e25] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
+                            >
+                                {loading ? 'Validando...' : 'Iniciar Turno'} <FaCheckCircle />
+                            </button>
+                        </form>
+
+                        <div className="mt-8 pt-8 border-t border-white/5">
+                            <button
+                                onClick={() => setLocalView('register')}
+                                className="text-gray-500 hover:text-white transition-colors text-sm"
+                            >
+                                Soy un nuevo repartidor
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+
+        if (view === 'register') {
+            return (
+                <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
+                    <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md animate-in slide-in-from-right duration-500">
+                        <h2 className="text-2xl font-bold text-center mb-2">Nuevo Repartidor</h2>
+                        <p className="text-gray-500 text-center text-sm mb-8">Completa tus datos para generarte un código de acceso.</p>
+
+                        <form onSubmit={handleRegisterStaff} className="space-y-4">
+                            <input
+                                type="text"
+                                placeholder="Nombre(s)"
+                                required
+                                className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
+                                value={newStaffData.firstName}
+                                onChange={e => setNewStaffData({ ...newStaffData, firstName: e.target.value })}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Apellido(s)"
+                                required
+                                className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
+                                value={newStaffData.lastName}
+                                onChange={e => setNewStaffData({ ...newStaffData, lastName: e.target.value })}
+                            />
+                            <input
+                                type="tel"
+                                placeholder="Número de Celular"
+                                required
+                                className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
+                                value={newStaffData.phone}
+                                onChange={e => setNewStaffData({ ...newStaffData, phone: e.target.value })}
+                            />
+                            <button
+                                disabled={loading}
+                                className="w-full bg-[#e5242c] text-white py-5 rounded-2xl font-bold hover:bg-[#c41e25] transition-all disabled:opacity-50 mt-4"
+                            >
+                                {loading ? 'Generando Acceso...' : 'Registrarme y Obtener Código'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setLocalView('login')}
+                                className="w-full text-gray-500 text-sm py-2"
+                            >
+                                Volver al inicio
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )
+        }
+
+        if (view === 'showCode') {
+            return (
+                <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6 text-center">
+                    <div className="bg-[#111] border border-green-500/30 p-10 rounded-[3rem] w-full max-w-md animate-in zoom-in duration-500">
+                        <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center text-green-500 mx-auto mb-6">
+                            <FaCheckCircle size={40} />
+                        </div>
+                        <h2 className="text-2xl font-bold mb-2">¡Todo Listo!</h2>
+                        <p className="text-gray-400 text-sm mb-8 leading-relaxed">Tu cuenta ha sido creada. Guarda este código como oro, es tu llave para entrar a trabajar.</p>
+
+                        <div className="bg-black/50 border-2 border-dashed border-green-500/30 rounded-3xl p-8 mb-8">
+                            <p className="text-green-500 text-[10px] uppercase font-black mb-2 tracking-widest">Tu Código de Acceso</p>
+                            <p className="text-white text-5xl font-black tracking-[0.5rem]">{generatedCode}</p>
+                        </div>
+
+                        <p className="text-yellow-500/80 text-[10px] uppercase font-bold mb-8 italic">⚠️ NO COMPARTAS ESTE CÓDIGO CON NADIE</p>
+
+                        <button
+                            onClick={handleLogout}
+                            className="bg-white text-black w-full py-5 rounded-2xl font-black hover:bg-gray-200 transition-all uppercase tracking-widest text-sm"
+                        >
+                            Entendido, ir al Login
+                        </button>
+                    </div>
+                </div>
+            )
+        }
+    }
+
+    // --- DASHBOARD DE REPARTO (LOGUEADO) ---
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white">
             {/* Header */}
@@ -164,30 +239,30 @@ export default function Delivery({ setView }) {
                     <div className="flex flex-col">
                         <span className="bg-[#e5242c] text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest w-fit">Repartidor</span>
                         <span className="text-[10px] text-gray-400 mt-1 font-mono uppercase tracking-tighter">
-                            {profile?.first_name} | {profile?.delivery_number}
+                            {profile?.first_name} | Cod: {profile?.delivery_id_card}
                         </span>
                     </div>
                 </div>
-                <button onClick={handleLogout} className="text-gray-500 hover:text-white transition-colors">
+                <button
+                    onClick={handleLogout}
+                    className="w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl flex items-center justify-center transition-all"
+                >
                     <FaSignOutAlt size={20} />
                 </button>
             </header>
 
             <main className="p-6 max-w-md mx-auto">
                 <div className="mb-8">
-                    <h2 className="text-2xl font-bold mb-2">Dashboard de Entregas 🛵</h2>
-                    <p className="text-gray-500 text-sm">
-                        Bienvenido, <strong>{profile?.first_name} {profile?.last_name}</strong>.
+                    <h2 className="text-2xl font-bold mb-2">Panel de Entregas 🛵</h2>
+                    <p className="text-gray-500 text-sm leading-tight">
+                        Hola, <strong>{profile?.first_name || 'Repartidor'}</strong>. Tienes {orders.length} pedidos por entregar.
                     </p>
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-20 text-gray-500">Cargando tus pedidos...</div>
+                    <div className="text-center py-20 text-gray-500 italic">Actualizando hoja de pedidos...</div>
                 ) : orders.length === 0 ? (
                     <div className="bg-[#111] border border-white/5 rounded-3xl p-10 text-center space-y-4">
-                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto text-gray-600">
-                            <FaMotorcycle size={40} />
-                        </div>
                         <p className="text-gray-400 font-medium italic">No tienes pedidos asignados por ahora.</p>
                     </div>
                 ) : (
