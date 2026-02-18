@@ -5,27 +5,56 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../supabaseClient'
 
-// SOJA Location 
-const RESTAURANT_POS = [14.775, -88.779]
+// SOJA Location - Santa Rosa de Copán, Honduras
+const RESTAURANT_POS = [14.7714, -88.7793]
 
-// Custom Icons
-const restaurantIcon = new L.Icon({
-    iconUrl: '/img/iconos/market.png',
-    iconSize: [45, 45],
-    iconAnchor: [22, 22],
+// Custom colored DivIcons (visible on dark maps)
+const restaurantIcon = new L.DivIcon({
+    html: `<div style="
+        background: #e5242c;
+        width: 42px; height: 42px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 4px 15px rgba(229,36,44,0.6);
+        display: flex; align-items: center; justify-content: center;
+    "><span style="transform: rotate(45deg); font-size: 18px; display: block; text-align: center; line-height: 36px;">🍜</span></div>`,
+    className: '',
+    iconSize: [42, 42],
+    iconAnchor: [21, 42],
+    popupAnchor: [0, -42]
 })
 
-const motoIcon = new L.Icon({
-    iconUrl: '/img/iconos/moto.png',
-    iconSize: [50, 50],
-    iconAnchor: [25, 25],
-    className: 'z-[1000]'
+const motoIcon = new L.DivIcon({
+    html: `<div style="
+        background: #f59e0b;
+        width: 46px; height: 46px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 4px 20px rgba(245,158,11,0.7);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px;
+        animation: pulse 1.5s infinite;
+    ">🛵</div>`,
+    className: '',
+    iconSize: [46, 46],
+    iconAnchor: [23, 23],
 })
 
-const homeIcon = new L.Icon({
-    iconUrl: '/img/iconos/casa.png',
-    iconSize: [45, 45],
-    iconAnchor: [22, 22],
+const homeIcon = new L.DivIcon({
+    html: `<div style="
+        background: #22c55e;
+        width: 42px; height: 42px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 4px 15px rgba(34,197,94,0.6);
+        display: flex; align-items: center; justify-content: center;
+    "><span style="transform: rotate(45deg); font-size: 18px; display: block; text-align: center; line-height: 36px;">🏠</span></div>`,
+    className: '',
+    iconSize: [42, 42],
+    iconAnchor: [21, 42],
+    popupAnchor: [0, -42]
 })
 
 function MapBounds({ routeCoords }) {

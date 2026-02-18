@@ -581,62 +581,122 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
 }
 
 function UsersList({ users, loading, onUpdate }) {
+    const [openDropdown, setOpenDropdown] = useState(null)
+
     if (loading) return <div className="p-8 text-gray-400">Cargando usuarios...</div>
     if (users.length === 0) return <div className="text-gray-500 italic p-8 bg-[#111] rounded-2xl border border-white/5">No hay usuarios registrados en el sistema.</div>
 
+    const roleLabels = { user: 'Cliente Estándar', delivery: 'Repartidor', admin: 'Administrador' }
+    const roleColors = { user: 'text-gray-400', delivery: 'text-blue-400', admin: 'text-[#e5242c]' }
+
+    const handleRoleChange = async (userId, newRole, userEmail) => {
+        setOpenDropdown(null)
+        const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
+        if (error) {
+            console.error('❌ Error actualizando rol:', error)
+            alert('Error de base de datos: ' + error.message)
+        } else {
+            console.log('✅ Rol actualizado con éxito para:', userEmail)
+            onUpdate()
+        }
+    }
+
+    const handleDelete = async (userId, userName) => {
+        if (!window.confirm(`¿Eliminar al usuario ${userName}? Esta acción no se puede deshacer.`)) return
+        const { error } = await supabase.from('profiles').delete().eq('id', userId)
+        if (error) alert('Error al eliminar: ' + error.message)
+        else onUpdate()
+    }
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {users.map(user => (
-                <div key={user.id} className="bg-[#111] border border-white/5 p-6 rounded-3xl flex flex-col gap-5 hover:border-[#e5242c]/30 transition-all group relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#e5242c]/5 rounded-bl-full -mr-12 -mt-12 transition-all group-hover:scale-110" />
+            {users.map(user => {
+                const isAdmin = user.role === 'admin'
+                return (
+                    <div key={user.id} className={`bg-[#111] border p-6 rounded-3xl flex flex-col gap-5 transition-all group relative overflow-hidden ${isAdmin ? 'border-[#e5242c]/30' : 'border-white/5 hover:border-[#e5242c]/30'
+                        }`}>
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#e5242c]/5 rounded-bl-full -mr-12 -mt-12 transition-all group-hover:scale-110" />
 
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-[#e5242c]/10 rounded-2xl flex items-center justify-center text-[#e5242c] group-hover:scale-105 transition-transform rotate-3">
-                            <FaUser size={24} />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-lg text-white leading-tight">
-                                {user.first_name || 'Sin Nombre'} {user.last_name || ''}
-                            </h4>
-                            <div className="flex gap-2 mt-1">
-                                {user.role === 'admin' && <span className="bg-[#e5242c] text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Administrador</span>}
-                                {user.role === 'delivery' && <span className="bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Repartidor</span>}
+                        <div className="flex items-center gap-4">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform rotate-3 ${isAdmin ? 'bg-[#e5242c]/20 text-[#e5242c]' : 'bg-[#e5242c]/10 text-[#e5242c]'
+                                }`}>
+                                <FaUser size={24} />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-lg text-white leading-tight">
+                                    {user.first_name || 'Sin Nombre'} {user.last_name || ''}
+                                </h4>
+                                <div className="flex gap-2 mt-1">
+                                    {user.role === 'admin' && <span className="bg-[#e5242c] text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Administrador</span>}
+                                    {user.role === 'delivery' && <span className="bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Repartidor</span>}
+                                    {(!user.role || user.role === 'user') && <span className="bg-white/10 text-gray-300 text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Cliente</span>}
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="pt-4 border-t border-white/5 space-y-2">
-                        <p className="text-gray-400 text-sm flex items-center gap-2">
-                            <span className="text-[#e5242c] text-xs">●</span> {user.phone || 'Sin teléfono'}
-                        </p>
-                        <p className="text-gray-400 text-sm flex items-center gap-2">
-                            <span className="text-[#e5242c] text-xs">●</span> {user.email || 'Sin correo registrado'}
-                        </p>
-                        <p className="text-[10px] text-gray-600 font-mono truncate bg-black/30 p-2 rounded-lg mt-2" title={user.id}>
-                            UID: {user.id}
-                        </p>
-                        <select
-                            className="w-full mt-4 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-gray-400 outline-none focus:border-[#e5242c]"
-                            value={user.role || 'user'}
-                            onChange={async (e) => {
-                                const newRole = e.target.value
-                                const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', user.id)
-                                if (error) {
-                                    console.error('❌ Error actualizando rol:', error)
-                                    alert('Error de base de datos: ' + error.message)
-                                } else {
-                                    console.log('✅ Rol actualizado con éxito para:', user.email)
-                                    onUpdate()
-                                }
-                            }}
-                        >
-                            <option value="user">Cliente Estándar</option>
-                            <option value="delivery">Repartidor</option>
-                            <option value="admin">Administrador</option>
-                        </select>
+                        <div className="pt-4 border-t border-white/5 space-y-2">
+                            <p className="text-gray-400 text-sm flex items-center gap-2">
+                                <span className="text-[#e5242c] text-xs">●</span> {user.phone || 'Sin teléfono'}
+                            </p>
+                            <p className="text-gray-400 text-sm flex items-center gap-2">
+                                <span className="text-[#e5242c] text-xs">●</span> {user.email || 'Sin correo registrado'}
+                            </p>
+                            <p className="text-[10px] text-gray-600 font-mono truncate bg-black/30 p-2 rounded-lg mt-2" title={user.id}>
+                                UID: {user.id}
+                            </p>
+
+                            {/* Role Selector */}
+                            {isAdmin ? (
+                                <div className="mt-4 flex items-center gap-3 bg-[#e5242c]/5 border border-[#e5242c]/20 rounded-2xl px-4 py-3">
+                                    <span className="text-[#e5242c] text-lg">🔒</span>
+                                    <div>
+                                        <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-widest">Rol Protegido</p>
+                                        <p className="text-white text-xs font-bold">Administrador del Sistema</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="relative mt-4">
+                                    <button
+                                        onClick={() => setOpenDropdown(openDropdown === user.id ? null : user.id)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm flex items-center justify-between hover:border-[#e5242c]/40 transition-all group/btn"
+                                    >
+                                        <span className={`font-bold ${roleColors[user.role] || 'text-gray-400'}`}>
+                                            {roleLabels[user.role] || 'Cliente Estándar'}
+                                        </span>
+                                        <FaChevronDown className={`text-gray-500 transition-transform ${openDropdown === user.id ? 'rotate-180' : ''}`} size={12} />
+                                    </button>
+
+                                    {openDropdown === user.id && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-2xl overflow-hidden z-50 shadow-2xl shadow-black/50">
+                                            {Object.entries(roleLabels).filter(([r]) => r !== 'admin').map(([roleVal, roleLabel]) => (
+                                                <button
+                                                    key={roleVal}
+                                                    onClick={() => handleRoleChange(user.id, roleVal, user.email)}
+                                                    className={`w-full px-5 py-3.5 text-left text-sm font-bold flex items-center justify-between transition-colors hover:bg-white/5 ${user.role === roleVal ? 'text-[#e5242c] bg-[#e5242c]/5' : 'text-gray-300'
+                                                        }`}
+                                                >
+                                                    <span>{roleLabel}</span>
+                                                    {user.role === roleVal && <span className="w-2 h-2 rounded-full bg-[#e5242c]" />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Delete button — only for non-admins */}
+                            {!isAdmin && (
+                                <button
+                                    onClick={() => handleDelete(user.id, `${user.first_name} ${user.last_name}`)}
+                                    className="w-full mt-2 flex items-center justify-center gap-2 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-wider"
+                                >
+                                    <FaTrash size={10} /> Eliminar Usuario
+                                </button>
+                            )}
+                        </div>
                     </div>
-                </div>
-            ))}
+                )
+            })}
         </div>
     )
 }
