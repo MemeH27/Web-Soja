@@ -146,6 +146,12 @@ export default function Admin({ setView }) {
                         <FaUser /> Usuarios
                     </button>
                     <button
+                        onClick={() => setActiveTab('delivery')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'delivery' ? 'bg-[#e5242c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                    >
+                        <FaClock /> Repartidores
+                    </button>
+                    <button
                         onClick={() => setActiveTab('reviews')}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'reviews' ? 'bg-[#e5242c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
                     >
@@ -168,7 +174,8 @@ export default function Admin({ setView }) {
                         {activeTab === 'products' ? 'Gestionar Productos' :
                             activeTab === 'orders' ? 'Gestionar Pedidos' :
                                 activeTab === 'users' ? 'Gestionar Usuarios' :
-                                    'Gestionar Reseñas'}
+                                    activeTab === 'delivery' ? 'Gestionar Repartidores' :
+                                        'Gestionar Reseñas'}
                     </h2>
                     <div className="flex items-center gap-4">
                         <button
@@ -199,6 +206,8 @@ export default function Admin({ setView }) {
                     <OrdersList orders={ordersList} loading={loadingOrders} deliveryUsers={deliveryUsers} onUpdate={fetchOrders} />
                 ) : activeTab === 'users' ? (
                     <UsersList users={usersList} loading={loadingUsers} onUpdate={fetchUsers} />
+                ) : activeTab === 'delivery' ? (
+                    <DeliveryList users={deliveryUsers} loading={loadingDelivery} onUpdate={fetchDeliveryUsers} />
                 ) : (
                     <ReviewsList reviews={reviews} loading={reviewsLoading} onDelete={handleDeleteReview} />
                 )}
@@ -486,6 +495,71 @@ function UsersList({ users, loading, onUpdate }) {
                             <option value="delivery">Repartidor</option>
                             <option value="admin">Administrador</option>
                         </select>
+                    </div>
+                </div>
+            ))}
+        </div>
+    )
+}
+
+function DeliveryList({ users, loading, onUpdate }) {
+    if (loading) return <div className="p-8 text-gray-400">Cargando repartidores...</div>
+    if (users.length === 0) return <div className="text-gray-500 italic p-8 bg-[#111] rounded-2xl border border-white/5">No hay repartidores registrados.</div>
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {users.map(user => (
+                <div key={user.id} className="bg-[#111] border border-white/5 p-6 rounded-3xl flex flex-col gap-5 hover:border-blue-500/30 transition-all group relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-bl-full -mr-12 -mt-12 transition-all group-hover:scale-110" />
+
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-105 transition-transform rotate-3">
+                            <FaClock size={24} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-lg text-white leading-tight">
+                                {user.first_name || 'Sin Nombre'} {user.last_name || ''}
+                            </h4>
+                            <span className="bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest mt-1 inline-block">Repartidor</span>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/5 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-black/30 p-3 rounded-xl border border-white/5">
+                                <p className="text-[10px] text-gray-500 uppercase font-black mb-1">Número</p>
+                                <p className="text-white font-bold">{user.delivery_number || 'No asignado'}</p>
+                            </div>
+                            <div className="bg-black/30 p-3 rounded-xl border border-white/5">
+                                <p className="text-[10px] text-gray-500 uppercase font-black mb-1">ID Único</p>
+                                <p className="text-white font-bold">{user.delivery_id_card || 'Sin ID'}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <p className="text-gray-400 text-sm flex items-center gap-2">
+                                <span className="text-blue-500 text-xs">●</span> {user.phone || 'Sin teléfono'}
+                            </p>
+                            <p className="text-gray-400 text-sm flex items-center gap-2">
+                                <span className="text-blue-500 text-xs">●</span> {user.email}
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                const num = prompt('Nuevo Número de Repartidor:', user.delivery_number || '')
+                                const id = prompt('Nuevo ID Único:', user.delivery_id_card || '')
+                                if (num !== null || id !== null) {
+                                    supabase.from('profiles').update({
+                                        delivery_number: num || user.delivery_number,
+                                        delivery_id_card: id || user.delivery_id_card
+                                    }).eq('id', user.id).then(() => onUpdate())
+                                }
+                            }}
+                            className="w-full mt-2 bg-white/5 hover:bg-white/10 text-xs text-white py-2 rounded-xl transition-colors border border-white/5"
+                        >
+                            Editar Credenciales de Reparto
+                        </button>
                     </div>
                 </div>
             ))}
