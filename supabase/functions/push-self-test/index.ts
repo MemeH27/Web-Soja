@@ -96,10 +96,11 @@ Deno.serve(async (req) => {
       sent += 1
     } catch (err: any) {
       const statusCode = err?.statusCode || err?.status || 0
+      const body = err?.body || ''
+      console.error(`Push self-test error ${statusCode}: ${err?.message || err}. Body: ${body}`)
+
       if (statusCode === 404 || statusCode === 410) {
         invalidIds.push(sub.id)
-      } else {
-        console.error('Push self-test error', statusCode, err?.message || err)
       }
     }
   }
