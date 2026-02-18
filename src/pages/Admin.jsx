@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FaBox, FaStar, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaTimes, FaUser, FaClock, FaCheckCircle } from 'react-icons/fa'
+import { FaBox, FaStar, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaTimes, FaUser, FaClock, FaCheckCircle, FaMotorcycle, FaChevronDown } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useMenu } from '../hooks/useMenu'
 import { useReviews } from '../hooks/useReviews'
@@ -63,6 +63,7 @@ export default function Admin({ setView }) {
             fetchOrders()
             fetchDeliveryUsers()
         }
+        if (activeTab === 'delivery') fetchDeliveryUsers()
     }, [activeTab])
 
     const fetchDeliveryUsers = async () => {
