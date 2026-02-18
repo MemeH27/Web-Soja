@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FaBox, FaStar, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaTimes, FaUser, FaClock, FaCheckCircle, FaMotorcycle, FaChevronDown } from 'react-icons/fa'
+import { FaBox, FaStar, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaTimes, FaUser, FaClock, FaCheckCircle, FaMotorcycle, FaChevronDown, FaBars } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useMenu } from '../hooks/useMenu'
 import { useReviews } from '../hooks/useReviews'
@@ -56,6 +56,12 @@ export default function Admin({ setView }) {
     const [loadingDelivery, setLoadingDelivery] = useState(false)
     const [showUserRoleModal, setShowUserRoleModal] = useState(false)
     const [selectedUser, setSelectedUser] = useState(null)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+    useEffect(() => {
+        // Close sidebar on tab change on mobile
+        setIsSidebarOpen(false)
+    }, [activeTab])
 
     useEffect(() => {
         if (activeTab === 'users') fetchUsers()
@@ -120,42 +126,65 @@ export default function Admin({ setView }) {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] text-white flex">
-            {/* Sidebar remains same but add signOut logic */}
-            <aside className="w-64 bg-[#111] border-r border-white/10 flex flex-col p-6 sticky top-0 h-screen">
-                <div className="mb-12">
+        <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col md:flex-row relative">
+            {/* Mobile Header */}
+            <header className="md:hidden bg-[#111] border-b border-white/10 p-4 flex justify-between items-center sticky top-0 z-50">
+                <img src="/img/logo/logo_blanco.png" alt="SOJA Logo" className="h-8" />
+                <button
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    className="p-2 bg-white/5 rounded-lg text-gray-400"
+                >
+                    {isSidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+                </button>
+            </header>
+
+            {/* Overlay for mobile sidebar */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
+            {/* Sidebar */}
+            <aside className={`
+                fixed inset-y-0 left-0 w-64 bg-[#111] border-r border-white/10 flex flex-col p-6 z-50 transition-transform duration-300
+                md:sticky md:translate-x-0
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}>
+                <div className="mb-12 hidden md:block">
                     <img src="/img/logo/logo_blanco.png" alt="SOJA Logo" className="h-10 mb-2" />
-                    <p className="text-gray-500 text-xs uppercase tracking-widest mt-1">Admin Panel</p>
+                    <p className="text-gray-500 text-xs uppercase tracking-widest mt-1 font-black">Admin Panel</p>
                 </div>
 
-                <nav className="flex-1 space-y-2">
+                <nav className="flex-1 space-y-2 mt-4 md:mt-0">
                     <button
                         onClick={() => setActiveTab('products')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'products' ? 'bg-[#e5242c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'products' ? 'bg-[#e5242c] text-white font-bold' : 'hover:bg-white/5 text-gray-400'}`}
                     >
                         <FaBox /> Productos
                     </button>
                     <button
                         onClick={() => setActiveTab('orders')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'orders' ? 'bg-[#e5242c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'orders' ? 'bg-[#e5242c] text-white font-bold' : 'hover:bg-white/5 text-gray-400'}`}
                     >
                         <FaBox /> Pedidos
                     </button>
                     <button
                         onClick={() => setActiveTab('users')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-[#e5242c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-[#e5242c] text-white font-bold' : 'hover:bg-white/5 text-gray-400'}`}
                     >
                         <FaUser /> Usuarios
                     </button>
                     <button
                         onClick={() => setActiveTab('delivery')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'delivery' ? 'bg-[#e5242c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'delivery' ? 'bg-[#e5242c] text-white font-bold' : 'hover:bg-white/5 text-gray-400'}`}
                     >
                         <FaClock /> Repartidores
                     </button>
                     <button
                         onClick={() => setActiveTab('reviews')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'reviews' ? 'bg-[#e5242c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'reviews' ? 'bg-[#e5242c] text-white font-bold' : 'hover:bg-white/5 text-gray-400'}`}
                     >
                         <FaStar /> Reseñas
                     </button>
@@ -163,16 +192,16 @@ export default function Admin({ setView }) {
 
                 <button
                     onClick={handleLogout}
-                    className="mt-auto flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white transition-colors"
+                    className="mt-auto flex items-center gap-3 px-4 py-3 text-gray-500 hover:text-white transition-colors border-t border-white/5 pt-6"
                 >
                     <FaSignOutAlt /> Cerrar Sesión
                 </button>
             </aside>
 
             {/* Content Area */}
-            <main className="flex-1 p-10 overflow-y-auto">
-                <header className="flex justify-between items-center mb-10">
-                    <h2 className="text-3xl font-bold">
+            <main className="flex-1 p-6 md:p-10 overflow-y-auto">
+                <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                    <h2 className="text-2xl md:text-3xl font-bold">
                         {activeTab === 'products' ? 'Gestionar Productos' :
                             activeTab === 'orders' ? 'Gestionar Pedidos' :
                                 activeTab === 'users' ? 'Gestionar Usuarios' :
@@ -186,17 +215,18 @@ export default function Admin({ setView }) {
                                 if (activeTab === 'orders') fetchOrders()
                                 if (activeTab === 'products') window.location.reload()
                             }}
-                            className="bg-white/5 hover:bg-white/10 text-gray-400 p-2 rounded-lg transition-all"
+                            className="bg-white/5 hover:bg-white/10 text-gray-400 px-4 py-2 rounded-xl border border-white/5 transition-all text-sm font-bold flex items-center gap-2"
                             title="Refrescar datos"
                         >
+                            <FaClock size={14} className="animate-pulse" />
                             Refrescar
                         </button>
                         {activeTab === 'products' && (
                             <button
                                 onClick={() => { setEditingProduct(null); setShowProductModal(true); }}
-                                className="bg-[#e5242c] text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform"
+                                className="bg-[#e5242c] text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform text-sm shadow-lg shadow-[#e5242c]/20"
                             >
-                                <FaPlus /> Añadir Producto
+                                <FaPlus /> <span className="hidden sm:inline">Añadir Producto</span>
                             </button>
                         )}
                     </div>
@@ -434,9 +464,9 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
                         </div>
                     </div>
 
-                    <div className="flex flex-col md:flex-row items-center gap-6">
-                        <div className="text-right">
-                            <div className="font-bold text-2xl text-white">L {Number(order.total).toFixed(2)}</div>
+                    <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 w-full md:w-auto mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
+                        <div className="text-center md:text-right w-full md:w-auto">
+                            <div className="font-black text-2xl text-white tracking-tight">L {Number(order.total).toFixed(2)}</div>
                             <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1 font-black">{order.delivery_type === 'delivery' ? 'A Domicilio' : 'Para llevar'}</p>
                         </div>
 
@@ -444,31 +474,31 @@ function OrdersList({ orders, loading, deliveryUsers, onUpdate }) {
                             {order.delivery_type === 'delivery' && (
                                 <div className="relative flex-1 md:flex-none">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e5242c] pointer-events-none">
-                                        <FaMotorcycle size={14} />
+                                        <FaMotorcycle size={16} />
                                     </div>
                                     <select
-                                        className="w-full bg-black border border-white/10 rounded-2xl pl-12 pr-10 py-3 text-xs text-white outline-none focus:border-[#e5242c] focus:ring-2 focus:ring-[#e5242c]/20 transition-all appearance-none cursor-pointer font-bold"
+                                        className="w-full bg-black border-2 border-[#e5242c]/30 hover:border-[#e5242c] rounded-2xl pl-12 pr-10 py-3 text-xs text-white outline-none focus:ring-4 focus:ring-[#e5242c]/10 transition-all appearance-none cursor-pointer font-black uppercase tracking-wider shadow-lg shadow-[#e5242c]/5"
                                         value={order.delivery_id || ''}
                                         onChange={(e) => assignDelivery(order.id, e.target.value)}
                                     >
-                                        <option value="">Asignar Repartidor</option>
+                                        <option value="" className="bg-[#111] text-gray-500">Asignar Repartidor</option>
                                         {deliveryUsers.map(u => (
-                                            <option key={u.id} value={u.id}>
+                                            <option key={u.id} value={u.id} className="bg-[#111] text-white py-2">
                                                 {u.first_name} {u.last_name} ({u.delivery_id_card})
                                             </option>
                                         ))}
                                     </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                                        <FaChevronDown size={10} />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#e5242c] pointer-events-none">
+                                        <FaChevronDown size={12} />
                                     </div>
                                 </div>
                             )}
                             <button
                                 onClick={() => deleteOrder(order.id)}
-                                className="w-10 h-10 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center transition-all border border-red-500/20"
+                                className="w-12 h-12 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-red-500/20 group/del shadow-lg"
                                 title="Eliminar Pedido"
                             >
-                                <FaPlus className="rotate-45" />
+                                <FaPlus className="rotate-45" size={18} />
                             </button>
                         </div>
                     </div>

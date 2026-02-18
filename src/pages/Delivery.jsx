@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FaMotorcycle, FaBox, FaMapMarkerAlt, FaCheckCircle, FaSignOutAlt, FaPhone } from 'react-icons/fa'
+import { FaMotorcycle, FaBox, FaMapMarkerAlt, FaCheckCircle, FaSignOutAlt, FaPhone, FaClock, FaTimes, FaUser } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
 
@@ -11,6 +11,8 @@ export default function Delivery({ setView }) {
     const [accessCode, setAccessCode] = useState('')
     const [newStaffData, setNewStaffData] = useState({ firstName: '', lastName: '', phone: '' })
     const [generatedCode, setGeneratedCode] = useState('')
+    const [selectedOrder, setSelectedOrder] = useState(null)
+    const [isRefreshing, setIsRefreshing] = useState(false)
 
     useEffect(() => {
         if (user && profile) {
@@ -36,6 +38,7 @@ export default function Delivery({ setView }) {
 
     const fetchAssignedOrders = async () => {
         setLoading(true)
+        setIsRefreshing(true)
         const { data, error } = await supabase
             .from('orders')
             .select('*')
@@ -45,6 +48,7 @@ export default function Delivery({ setView }) {
 
         if (data) setOrders(data)
         setLoading(false)
+        setTimeout(() => setIsRefreshing(false), 500)
     }
 
     const updateStatus = async (orderId, newStatus) => {
@@ -233,22 +237,31 @@ export default function Delivery({ setView }) {
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white">
             {/* Header */}
-            <header className="bg-[#111] border-b border-white/10 p-6 sticky top-0 z-10 flex justify-between items-center">
+            <header className="bg-[#111] border-b border-white/10 p-4 md:p-6 sticky top-0 z-10 flex justify-between items-center backdrop-blur-md bg-opacity-80">
                 <div className="flex items-center gap-3">
-                    <img src="/img/logo/logo_blanco.png" alt="SOJA" className="h-8" />
+                    <img src="/img/logo/logo_blanco.png" alt="SOJA" className="h-7 md:h-8" />
                     <div className="flex flex-col">
-                        <span className="bg-[#e5242c] text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest w-fit">Repartidor</span>
-                        <span className="text-[10px] text-gray-400 mt-1 font-mono uppercase tracking-tighter">
+                        <span className="bg-[#e5242c] text-[7px] md:text-[8px] font-black px-1.5 md:px-2 py-0.5 rounded uppercase tracking-widest w-fit">Repartidor</span>
+                        <span className="text-[9px] md:text-[10px] text-gray-400 mt-1 font-mono uppercase tracking-tighter hidden sm:block">
                             {profile?.first_name} | Cod: {profile?.delivery_id_card}
                         </span>
                     </div>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl flex items-center justify-center transition-all"
-                >
-                    <FaSignOutAlt size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={fetchAssignedOrders}
+                        className={`w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-[#e5242c] rounded-xl flex items-center justify-center transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+                        title="Refrescar Pedidos"
+                    >
+                        <FaClock size={16} />
+                    </button>
+                    <button
+                        onClick={handleLogout}
+                        className="w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl flex items-center justify-center transition-all border border-white/5"
+                    >
+                        <FaSignOutAlt size={18} />
+                    </button>
+                </div>
             </header>
 
             <main className="p-6 max-w-md mx-auto">
@@ -294,20 +307,27 @@ export default function Delivery({ setView }) {
                                         </p>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                        <button
+                                            onClick={() => setSelectedOrder(order)}
+                                            className="col-span-2 bg-white/5 hover:bg-white/10 text-white py-4 rounded-2xl font-bold border border-white/10 transition-all active:scale-95 text-sm"
+                                        >
+                                            Ver Detalles del Pedido
+                                        </button>
+
                                         {order.status === 'prepared' ? (
                                             <button
                                                 onClick={() => updateStatus(order.id, 'shipped')}
-                                                className="col-span-2 bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all active:scale-95"
+                                                className="col-span-2 bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-600/20"
                                             >
                                                 <FaMotorcycle /> Iniciar Entrega
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => updateStatus(order.id, 'delivered')}
-                                                className="col-span-2 bg-green-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all active:scale-95"
+                                                className="col-span-2 bg-green-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all active:scale-95 shadow-lg shadow-green-600/20"
                                             >
-                                                <FaCheckCircle /> Marcar como Entregado
+                                                <FaCheckCircle /> Finalizar Entrega
                                             </button>
                                         )}
                                     </div>
@@ -317,6 +337,116 @@ export default function Delivery({ setView }) {
                     </div>
                 )}
             </main>
+
+            {/* Modal de Detalles */}
+            {selectedOrder && (
+                <OrderDetailsModal
+                    order={selectedOrder}
+                    onClose={() => setSelectedOrder(null)}
+                />
+            )}
+        </div>
+    )
+}
+
+function OrderDetailsModal({ order, onClose }) {
+    const items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || [])
+
+    return (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex flex-col p-4 md:p-8 overflow-y-auto">
+            <div className="max-w-xl mx-auto w-full bg-[#111] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative animate-in fade-in zoom-in duration-300 mb-8">
+                {/* Close Button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-6 right-6 w-10 h-10 bg-black rounded-full flex items-center justify-center text-gray-500 hover:text-white transition-colors border border-white/10 z-10"
+                >
+                    <FaTimes size={18} />
+                </button>
+
+                {/* Header Modal */}
+                <div className="p-8 pb-4 border-b border-white/5">
+                    <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-[0.2rem] mb-2">Detalles del Pedido</p>
+                    <h2 className="text-3xl font-black text-white leading-tight">#{order.id.slice(0, 8).toUpperCase()}</h2>
+                </div>
+
+                <div className="p-8 space-y-8">
+                    {/* Client Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-[#e5242c]/10 rounded-2xl flex items-center justify-center text-[#e5242c]">
+                                <FaUser size={20} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-500 uppercase font-black">Cliente</p>
+                                <p className="text-lg font-bold text-white leading-none">{order.client_name}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-500">
+                                <FaPhone size={20} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-500 uppercase font-black">Teléfono</p>
+                                <a href={`tel:${order.client_phone}`} className="text-lg font-bold text-white hover:text-green-500 transition-colors leading-none">{order.client_phone}</a>
+                            </div>
+                        </div>
+
+                        <div className="bg-black/40 rounded-3xl p-6 border border-white/5 relative group">
+                            <div className="flex items-start gap-4 mb-4">
+                                <div className="p-2.5 bg-[#e5242c]/10 rounded-xl text-[#e5242c]">
+                                    <FaMapMarkerAlt size={18} />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] text-gray-500 uppercase font-black mb-1">Dirección de Entrega</p>
+                                    <p className="text-sm text-gray-200 leading-relaxed font-medium">{order.address}</p>
+                                </div>
+                            </div>
+
+                            {(order.latitude && order.longitude) && (
+                                <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full bg-[#e5242c] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-[#c41e25] transition-all shadow-lg text-sm uppercase tracking-widest active:scale-95"
+                                >
+                                    <FaMapMarkerAlt /> Abrir en Google Maps
+                                </a>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Products Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                <FaBox size={14} className="text-[#e5242c]" /> Resumen del Pedido
+                            </h3>
+                            <span className="text-xs text-gray-500 font-bold">{items.length} items</span>
+                        </div>
+
+                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                            {items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-8 h-8 bg-[#e5242c] text-white rounded-lg flex items-center justify-center font-black text-sm">
+                                            {item.quantity}
+                                        </div>
+                                        <span className="text-white font-bold text-sm tracking-tight">{item.name}</span>
+                                    </div>
+                                    <span className="text-gray-500 font-mono text-sm">L {Number(item.price * item.quantity).toFixed(2)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Total Section */}
+                    <div className="pt-6 border-t border-white/5 flex justify-between items-center">
+                        <span className="text-gray-400 font-black uppercase tracking-widest text-xs">Total del Pedido</span>
+                        <span className="text-3xl font-black text-[#e5242c] tracking-tight">L {Number(order.total).toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
