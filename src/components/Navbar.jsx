@@ -118,8 +118,8 @@ export default function Navbar({ setView, user, setShowAuthModal }) {
 
                         {user ? (
                             <>
-                                <div className="pb-4 border-b border-white/20">
-                                    <PushNotificationToggle user={user} role={activeRole} />
+                                <div className="pb-4 border-b border-white/20 px-2">
+                                    <PushNotificationToggle user={user} role={activeRole} inline />
                                 </div>
                                 <button
                                     onClick={() => { setView('my-orders'); setMobileMenuOpen(false); }}

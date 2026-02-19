@@ -71,6 +71,7 @@ export default function Delivery({ setView }) {
     const [deliveryToastOrder, setDeliveryToastOrder] = useState(null)
     const [showNewDeliveryModal, setShowNewDeliveryModal] = useState(false)
     const [showCode, setShowCode] = useState(false)
+    const [activeTab, setActiveTab] = useState('orders') // 'orders' or 'history'
 
     const playDeliveryToastSound = useCallback(() => {
         try {
@@ -140,18 +141,26 @@ export default function Delivery({ setView }) {
                 supabase.removeChannel(subscription)
             }
         }
-    }, [user, profile, playDeliveryToastSound])
+    }, [user, profile, playDeliveryToastSound, activeTab])
 
     const fetchAssignedOrders = async () => {
         if (!user) return
         setIsOrdersLoading(true)
         setIsRefreshing(true)
-        const { data, error } = await supabase
+
+        let query = supabase
             .from('orders')
             .select('*')
             .eq('delivery_id', user.id)
-            .in('status', ['prepared', 'shipped'])
             .order('created_at', { ascending: false })
+
+        if (activeTab === 'orders') {
+            query = query.in('status', ['prepared', 'shipped'])
+        } else {
+            query = query.eq('status', 'delivered')
+        }
+
+        const { data, error } = await query
 
         if (data) setOrders(data)
         setIsOrdersLoading(false)
@@ -487,9 +496,24 @@ export default function Delivery({ setView }) {
             <main className="p-6 max-w-md mx-auto" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}>
                 <div className="mb-8">
                     <h2 className="text-2xl font-bold mb-2">Panel de Entregas 🛵</h2>
-                    <p className="text-gray-500 text-sm leading-tight">
-                        Hola, <strong>{profile?.first_name || 'Repartidor'}</strong>. Tienes {orders.length} pedidos por entregar.
+                    <p className="text-gray-500 text-sm leading-tight mb-6">
+                        Hola, <strong>{profile?.first_name || 'Repartidor'}</strong>. Gestiona tus entregas aquí.
                     </p>
+
+                    <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl border border-white/10">
+                        <button
+                            onClick={() => setActiveTab('orders')}
+                            className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${activeTab === 'orders' ? 'bg-[#e5242c] text-white shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                        >
+                            Pedidos Activos ({activeTab === 'orders' ? orders.length : '...'})
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('history')}
+                            className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${activeTab === 'history' ? 'bg-[#e5242c] text-white shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                        >
+                            Historial ({activeTab === 'history' ? orders.length : '...'})
+                        </button>
+                    </div>
                 </div>
 
                 <div className="mb-8 bg-[#111] border border-[#e5242c]/30 rounded-3xl p-6 text-center shadow-xl relative group">

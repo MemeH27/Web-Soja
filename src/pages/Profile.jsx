@@ -101,12 +101,12 @@ export default function Profile({ onBack, setCart }) {
                                 {user.email}
                             </p>
                             <div className="w-full pt-6 border-t border-white/5 space-y-4">
-                                <div className="flex justify-between items-center bg-white/5 p-3 rounded-xl">
-                                    <span className="text-gray-400 font-bold uppercase text-[9px] tracking-widest">Cuenta</span>
-                                    <span className="text-green-500 text-[10px] font-black uppercase tracking-widest">Verificada</span>
-                                </div>
-                                <div className="pt-2">
-                                    <PushNotificationToggle user={user} role={profile?.role || 'user'} />
+                                <div className="w-full pt-6 border-t border-white/5 flex flex-col gap-4">
+                                    <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10">
+                                        <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Cuenta</span>
+                                        <span className="text-green-500 text-[11px] font-black uppercase tracking-widest">Verificada</span>
+                                    </div>
+                                    <PushNotificationToggle user={user} role={profile?.role || 'user'} inline={true} />
                                 </div>
                             </div>
                         </div>

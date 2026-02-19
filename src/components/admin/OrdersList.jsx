@@ -82,103 +82,102 @@ export default function OrdersList({ orders, loading, deliveryUsers, onUpdate, o
             ) : (
                 <div className="grid gap-6">
                     {filteredOrders.map(order => (
-                        <div key={order.id} className="bg-[#111] border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row md:items-center justify-between group hover:border-[#e5242c]/20 transition-all shadow-xl gap-6">
-                            <div className="flex items-center gap-6 flex-1">
-                                <div className="w-14 h-14 bg-[#e5242c]/10 rounded-2xl flex items-center justify-center text-[#e5242c] rotate-3 group-hover:rotate-0 transition-transform">
-                                    <FaClock size={24} />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                        <h4 className="font-bold text-xl text-white">
-                                            {order.client_name || `Invitado #${order.id.slice(0, 4).toUpperCase()}`}
-                                        </h4>
-                                        {!order.user_id && <span className="bg-white/5 text-[8px] text-gray-500 px-2 py-0.5 rounded font-black uppercase tracking-widest">Anónimo</span>}
-                                        <span className={`text-[10px] uppercase font-black px-3 py-1 rounded-full ${order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                                            order.status === 'delivered' ? 'bg-green-500/10 text-green-500' :
-                                                order.status === 'cancelled' ? 'bg-red-500/10 text-red-400' : // Fixed typo from earlier view (it was text-red-500 but consistency is good)
-                                                    'bg-blue-500/10 text-blue-500'
-                                            }`}>
-                                            {order.status === 'pending' ? 'Pendiente' :
-                                                order.status === 'cooking' ? 'Cocinando' :
-                                                    order.status === 'ready' || order.status === 'prepared' ? 'Preparado' :
-                                                        order.status === 'shipped' ? 'En Camino' :
-                                                            order.status === 'cancelled' ? 'Cancelado' : 'Entregado'}
-                                        </span>
+                        <div key={order.id} className="bg-[#111] border border-white/5 p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] flex flex-col group hover:border-[#e5242c]/20 transition-all shadow-xl gap-6">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 md:w-14 md:h-14 bg-[#e5242c]/10 rounded-2xl flex items-center justify-center text-[#e5242c] shrink-0">
+                                        <FaClock size={20} className="md:size-6" />
                                     </div>
-                                    <p className="text-gray-400 text-sm flex items-center gap-4">
-                                        <span className="flex items-center gap-2"><FaUser size={12} className="text-[#e5242c]" /> {order.client_phone}</span>
-                                        <span className="text-gray-600">•</span>
-                                        <span>{new Date(order.created_at).toLocaleString()}</span>
-                                    </p>
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                            <h4 className="font-bold text-lg md:text-xl text-white">
+                                                {order.client_name || `Invitado #${order.id.slice(0, 4).toUpperCase()}`}
+                                            </h4>
+                                            <span className={`text-[10px] uppercase font-black px-3 py-1 rounded-full ${order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                                                order.status === 'delivered' ? 'bg-green-500/10 text-green-500' :
+                                                    order.status === 'cancelled' ? 'bg-red-500/10 text-red-400' :
+                                                        'bg-blue-500/10 text-blue-500'
+                                                }`}>
+                                                {order.status === 'pending' ? 'Pendiente' :
+                                                    order.status === 'cooking' ? 'Cocinando' :
+                                                        order.status === 'ready' || order.status === 'prepared' ? 'Preparado' :
+                                                            order.status === 'shipped' ? 'En Camino' :
+                                                                order.status === 'cancelled' ? 'Cancelado' : 'Entregado'}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-gray-500 text-xs text-left">
+                                            <span className="flex items-center gap-2 font-medium">
+                                                <FaUser size={10} className="text-[#e5242c]/50" /> {order.client_phone}
+                                            </span>
+                                            <span className="hidden sm:inline opacity-30">•</span>
+                                            <span className="opacity-60">{new Date(order.created_at).toLocaleString()}</span>
+                                            <span className="bg-white/5 text-[8px] text-gray-600 px-2 py-0.5 rounded uppercase font-black tracking-widest w-fit">#{order.id.slice(0, 8)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between md:flex-col items-center md:items-end gap-1 md:gap-0 border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
+                                    <div className="font-black text-2xl md:text-3xl text-white tracking-tight">L {Number(order.total).toFixed(2)}</div>
+                                    <p className="text-[9px] text-gray-500 uppercase tracking-widest mt-1 font-black">{order.delivery_type === 'delivery' ? '🚗 Domicilio' : '🥡 Para llevar'}</p>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 w-full md:w-auto mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
-                                <div className="text-center md:text-right w-full md:w-auto">
-                                    <div className="font-black text-2xl text-white tracking-tight">L {Number(order.total).toFixed(2)}</div>
-                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1 font-black">{order.delivery_type === 'delivery' ? 'A Domicilio' : 'Para llevar'}</p>
-                                </div>
-
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4 pt-4 border-t border-white/5">
                                 {order.status === 'pending' && (
                                     <button
                                         onClick={() => updateOrderStatus(order.id, 'cooking')}
-                                        className="w-12 h-12 bg-orange-500/10 hover:bg-orange-500 text-orange-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-orange-500/20 shadow-lg"
-                                        title="Pasar a Cocina"
+                                        className="flex-1 sm:flex-none h-12 bg-orange-500/10 hover:bg-orange-500 text-orange-500 hover:text-white rounded-2xl flex items-center justify-center gap-2 transition-all border border-orange-500/20 font-bold text-xs"
                                     >
-                                        👨‍🍳
+                                        👨‍🍳 Cocinar
                                     </button>
                                 )}
                                 {order.status === 'cooking' && (
                                     <button
                                         onClick={() => updateOrderStatus(order.id, 'ready')}
-                                        className="w-12 h-12 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-blue-500/20 shadow-lg"
-                                        title="Marcar como Listo"
+                                        className="flex-1 sm:flex-none h-12 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white rounded-2xl flex items-center justify-center gap-2 transition-all border border-blue-500/20 font-bold text-xs"
                                     >
-                                        ✅
+                                        ✅ Listo
                                     </button>
                                 )}
                                 {order.status === 'shipped' && (
                                     <button
                                         onClick={() => onTrack(order)}
-                                        className="bg-[#e5242c] text-white px-5 py-3 rounded-2xl flex items-center gap-3 transition-all font-black uppercase tracking-widest text-[10px] shadow-lg shadow-[#e5242c]/20 hover:scale-105 active:scale-95"
+                                        className="flex-1 sm:flex-none bg-[#e5242c]/10 text-[#e5242c] hover:bg-[#e5242c] hover:text-white h-12 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-[10px] border border-[#e5242c]/20"
                                     >
-                                        <FaMapMarkerAlt size={14} />
-                                        <span>Rastrear pedido</span>
+                                        <FaMapMarkerAlt size={14} /> Rastrear
                                     </button>
                                 )}
+
                                 {order.delivery_type === 'delivery' && (order.status === 'ready' || order.status === 'pending' || order.status === 'cooking' || order.status === 'shipped') && (
-                                    <div className="relative flex-1 md:flex-none">
+                                    <div className="relative flex-1 md:flex-none min-w-[200px]">
                                         <button
                                             onClick={() => setOpenDropdownId(openDropdownId === order.id ? null : order.id)}
-                                            className="w-full md:w-64 bg-black border-2 border-[#e5242c]/30 hover:border-[#e5242c] rounded-2xl pl-12 pr-10 py-3 text-xs text-left text-white outline-none focus:ring-4 focus:ring-[#e5242c]/10 transition-all cursor-pointer font-black uppercase tracking-wider shadow-lg shadow-[#e5242c]/5 flex items-center justify-between"
+                                            className="w-full h-12 bg-white/5 border border-white/10 hover:border-[#e5242c]/40 rounded-2xl px-5 text-xs text-left text-white outline-none transition-all flex items-center justify-between font-bold"
                                         >
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e5242c]">
-                                                <FaMotorcycle size={16} />
+                                            <div className="flex items-center gap-3">
+                                                <FaMotorcycle size={14} className="text-[#e5242c]" />
+                                                <span className="truncate max-w-[120px]">
+                                                    {order.delivery_id
+                                                        ? deliveryUsers.find(u => u.id === order.delivery_id)
+                                                            ? deliveryUsers.find(u => u.id === order.delivery_id).first_name
+                                                            : 'Asignado'
+                                                        : 'Asignar Repartidor'}
+                                                </span>
                                             </div>
-                                            <span className="truncate">
-                                                {order.delivery_id
-                                                    ? deliveryUsers.find(u => u.id === order.delivery_id)
-                                                        ? `${deliveryUsers.find(u => u.id === order.delivery_id).first_name} (${deliveryUsers.find(u => u.id === order.delivery_id).delivery_id_card})`
-                                                        : 'Asignado'
-                                                    : 'Asignar Repartidor'}
-                                            </span>
-                                            <FaChevronDown size={12} className={`text-[#e5242c] transition-transform ${openDropdownId === order.id ? 'rotate-180' : ''}`} />
+                                            <FaChevronDown size={10} className={`text-gray-500 transition-transform ${openDropdownId === order.id ? 'rotate-180' : ''}`} />
                                         </button>
 
                                         {openDropdownId === order.id && (
                                             <>
-                                                <div
-                                                    className="fixed inset-0 z-[60]"
-                                                    onClick={() => setOpenDropdownId(null)}
-                                                />
-                                                <div className="absolute top-full mt-2 left-0 right-0 bg-[#0c0c0c] border border-white/10 rounded-2xl overflow-visible shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[70] animate-in fade-in slide-in-from-top-2 duration-200 min-w-[200px]">
+                                                <div className="fixed inset-0 z-[60]" onClick={() => setOpenDropdownId(null)} />
+                                                <div className="absolute top-full mt-2 left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl shadow-2xl z-[70] animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
                                                     <div
                                                         onClick={() => { assignDelivery(order.id, null); setOpenDropdownId(null); }}
-                                                        className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 hover:bg-white/5 cursor-pointer border-b border-white/10 transition-colors first:rounded-t-2xl"
+                                                        className="px-5 py-3 text-[10px] font-black uppercase text-gray-500 hover:bg-white/5 cursor-pointer border-b border-white/5 transition-colors"
                                                     >
                                                         Sin Asignar
                                                     </div>
-                                                    <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                                                    <div className="max-h-52 overflow-y-auto">
                                                         {deliveryUsers.map(u => (
                                                             <div
                                                                 key={u.id}
@@ -186,31 +185,27 @@ export default function OrdersList({ orders, loading, deliveryUsers, onUpdate, o
                                                                     assignDelivery(order.id, u.id)
                                                                     setOpenDropdownId(null)
                                                                 }}
-                                                                className={`px-6 py-4 text-xs font-bold transition-all cursor-pointer flex items-center justify-between group/item border-b border-white/5 last:border-0
-                                                                        ${order.delivery_id === u.id ? 'bg-[#e5242c] text-white' : 'text-gray-300 hover:bg-[#e5242c]/10 hover:text-white'}
-                                                                    `}
+                                                                className={`px-5 py-3 text-xs font-bold transition-all cursor-pointer flex items-center justify-between border-b border-white/5 last:border-0
+                                                                    ${order.delivery_id === u.id ? 'bg-[#e5242c] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}
+                                                                `}
                                                             >
-                                                                <span>{u.first_name} {u.last_name}</span>
-                                                                <span className={`text-[10px] font-black tracking-widest ${order.delivery_id === u.id ? 'text-white/60' : 'text-[#e5242c]'}`}>
-                                                                    {u.delivery_id_card}
-                                                                </span>
+                                                                <span>{u.first_name}</span>
+                                                                <span className="text-[10px] opacity-60 font-mono">{u.delivery_id_card}</span>
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    {deliveryUsers.length === 0 && (
-                                                        <div className="px-6 py-4 text-xs text-gray-500 italic">No hay repartidores activos</div>
-                                                    )}
                                                 </div>
                                             </>
                                         )}
                                     </div>
                                 )}
+
                                 <button
                                     onClick={() => deleteOrder(order.id)}
-                                    className="w-12 h-12 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-red-500/20 group/del shadow-lg"
+                                    className="h-12 w-12 sm:ml-auto bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-red-500/20"
                                     title="Eliminar Pedido"
                                 >
-                                    <FaPlus className="rotate-45" size={18} />
+                                    <FaPlus className="rotate-45" size={16} />
                                 </button>
                             </div>
                         </div>

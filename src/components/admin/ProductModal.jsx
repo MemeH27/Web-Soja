@@ -91,15 +91,7 @@ export default function ProductModal({ onClose, product, onSave }) {
                                 </div>
                             )}
                         </div>
-                        <div>
-                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">URL DIRECTA (Opcional)</label>
-                            <input
-                                value={formData.image}
-                                onChange={e => { setFormData({ ...formData, image: e.target.value }); setImagePreview(e.target.value); }}
-                                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#e5242c] transition-colors text-xs font-medium"
-                                placeholder="https://..."
-                            />
-                        </div>
+
                     </div>
 
                     <div className="space-y-5">
