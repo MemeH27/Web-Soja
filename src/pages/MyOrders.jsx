@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
-import { FaChevronLeft, FaClock, FaBox, FaMapMarkerAlt, FaCheckCircle, FaTimesCircle, FaFilter, FaCalendarAlt } from 'react-icons/fa'
+import { FaChevronLeft, FaClock, FaBox, FaMapMarkerAlt, FaCheckCircle, FaTimesCircle, FaFilter, FaCalendarAlt, FaRotateLeft, FaShoppingCart, FaArrowRight } from 'react-icons/fa'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
 
-export default function MyOrders({ onBack }) {
+export default function MyOrders({ onBack, setCart, setView }) {
     const { user, profile } = useAuth()
     const [orders, setOrders] = useState([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState('all') // all, delivered, cancelled
     const [selectedMonth, setSelectedMonth] = useState('all')
+    const [showReorderModal, setShowReorderModal] = useState(false)
 
     useEffect(() => {
         if (user) {
@@ -27,6 +29,18 @@ export default function MyOrders({ onBack }) {
         if (data) setOrders(data)
         if (error) console.error('Error fetching orders:', error)
         setLoading(false)
+    }
+
+    const handleReorder = (order) => {
+        if (!setCart) return
+
+        const newCart = {}
+        order.items.forEach(item => {
+            newCart[item.id] = (newCart[item.id] || 0) + item.qty
+        })
+
+        setCart(newCart)
+        setShowReorderModal(true)
     }
 
     const filteredOrders = orders.filter(order => {
@@ -128,8 +142,8 @@ export default function MyOrders({ onBack }) {
                             <div key={order.id} className="bg-[#111] border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row md:items-center justify-between group hover:border-[#e5242c]/20 transition-all shadow-xl gap-6">
                                 <div className="flex items-center gap-6 flex-1">
                                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform ${order.status === 'delivered' ? 'bg-green-500/10 text-green-500' :
-                                            order.status === 'cancelled' ? 'bg-red-500/10 text-red-500' :
-                                                'bg-blue-500/10 text-blue-500'
+                                        order.status === 'cancelled' ? 'bg-red-500/10 text-red-500' :
+                                            'bg-blue-500/10 text-blue-500'
                                         }`}>
                                         {order.status === 'delivered' ? <FaCheckCircle size={24} /> :
                                             order.status === 'cancelled' ? <FaTimesCircle size={24} /> :
@@ -139,8 +153,8 @@ export default function MyOrders({ onBack }) {
                                         <div className="flex items-center gap-3 mb-1">
                                             <p className="text-xs font-black text-gray-500 uppercase tracking-[0.15rem]">PEDIDO #{order.id.slice(0, 8).toUpperCase()}</p>
                                             <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded ${order.status === 'delivered' ? 'bg-green-500/20 text-green-400' :
-                                                    order.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                                                        'bg-blue-500/20 text-blue-400'
+                                                order.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                                                    'bg-blue-500/20 text-blue-400'
                                                 }`}>
                                                 {order.status === 'delivered' ? 'Entregado' :
                                                     order.status === 'cancelled' ? 'Cancelado' : 'En Proceso'}
@@ -154,24 +168,81 @@ export default function MyOrders({ onBack }) {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-8 justify-between md:justify-end">
-                                    <div className="text-right">
-                                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Total Pagado</p>
-                                        <p className="text-2xl font-black text-white tracking-tight">L {Number(order.total).toFixed(2)}</p>
+                                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                                    <div className="text-right hidden sm:block">
+                                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Total</p>
+                                        <p className="text-xl font-black text-white tracking-tight">L {Number(order.total).toFixed(2)}</p>
                                     </div>
-                                    <button
-                                        onClick={() => {/* Ver detalle */ }}
-                                        className="w-12 h-12 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-white/5 active:scale-95"
-                                        title="Ver Detalles"
-                                    >
-                                        <FaBox size={18} />
-                                    </button>
+                                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                                        <button
+                                            onClick={() => handleReorder(order)}
+                                            className="flex-1 sm:flex-none h-12 bg-green-500 hover:bg-green-600 text-white px-6 rounded-2xl flex items-center justify-center gap-2 transition-all font-bold active:scale-95 shadow-lg shadow-green-900/20"
+                                        >
+                                            <FaRotateLeft size={14} />
+                                            <span className="text-sm">Pedir de nuevo</span>
+                                        </button>
+                                        <button
+                                            onClick={() => {/* Ver detalle */ }}
+                                            className="w-12 h-12 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-white/5 active:scale-95"
+                                            title="Ver Detalles"
+                                        >
+                                            <FaBox size={18} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            {/* Reorder Success Modal */}
+            <AnimatePresence>
+                {showReorderModal && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowReorderModal(false)}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-md bg-[#111] border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent" />
+                            <div className="flex flex-col items-center text-center gap-6">
+                                <div className="w-20 h-20 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center">
+                                    <FaCheckCircle size={40} />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black mb-2 tracking-tight">¡Cargado al Carrito!</h3>
+                                    <p className="text-gray-400 text-sm leading-relaxed">
+                                        Hemos añadido los productos de tu pedido anterior al carrito actual. ¿Qué deseas hacer ahora?
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-1 w-full gap-3">
+                                    <button
+                                        onClick={() => setView('cart')}
+                                        className="bg-white text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-gray-200 transition-all active:scale-95"
+                                    >
+                                        <FaShoppingCart size={14} /> Ir a Pagar <FaArrowRight />
+                                    </button>
+                                    <button
+                                        onClick={() => setShowReorderModal(false)}
+                                        className="bg-white/5 text-gray-400 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all active:scale-95"
+                                    >
+                                        Seguir Navegando
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

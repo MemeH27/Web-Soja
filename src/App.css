@@ -22,10 +22,11 @@
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 40;
+  z-index: 100;
   max-width: var(--max-width);
   margin: 0 auto;
   padding: 0.8rem 1rem;
+  padding-top: max(0.8rem, env(safe-area-inset-top));
   display: flex;
   justify-content: space-between;
   align-items: center;

@@ -64,7 +64,7 @@ export default function About() {
                                 <div className="flex justify-around border-t border-white/20 pt-4 md:pt-6">
                                     <div className="text-center">
                                         <p className="text-3xl md:text-5xl font-black text-white mb-1">+{years}</p>
-                                        <p className="text-gray-400 text-[10px] md:text-xs uppercase tracking-widest">Años de Experticia</p>
+                                        <p className="text-gray-400 text-[10px] md:text-xs uppercase tracking-widest">Años de Experiencia</p>
                                     </div>
                                     <div className="text-center">
                                         <p className="text-3xl md:text-5xl font-black text-[#e5242c] mb-1">{stars}.0</p>

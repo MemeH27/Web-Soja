@@ -518,7 +518,7 @@ export default function App() {
           <Profile onBack={() => navigate('/')} setCart={setCart} />
         } />
         <Route path="/my-orders" element={
-          <MyOrders onBack={() => navigate('/')} />
+          <MyOrders onBack={() => navigate('/')} setCart={setCart} setView={setView} />
         } />
 
         <Route path="/order" element={

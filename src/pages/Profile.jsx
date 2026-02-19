@@ -1,21 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { supabase } from '../supabaseClient'
-import { FaUser, FaPhone, FaLocationDot, FaEnvelope, FaPenToSquare, FaFloppyDisk, FaXmark, FaRightFromBracket, FaClock } from 'react-icons/fa6'
+import { FaUser, FaPhone, FaLocationDot, FaPenToSquare, FaFloppyDisk, FaXmark, FaRightFromBracket } from 'react-icons/fa6'
 import LocationPicker from '../components/LocationPicker'
 import PushNotificationToggle from '../components/PushNotificationToggle'
-import Skeleton from '../components/Animations/Skeleton'
-import { FaRotateLeft } from 'react-icons/fa6'
 
 export default function Profile({ onBack, setCart }) {
-    const { user, profile, updateProfile, signOut, refreshProfile } = useAuth()
+    const { user, profile, updateProfile, signOut } = useAuth()
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
     const [showLocationPicker, setShowLocationPicker] = useState(false)
-    const [recentOrders, setRecentOrders] = useState([])
-    const [loadingOrders, setLoadingOrders] = useState(false)
 
     const [firstName, setFirstName] = useState(profile?.first_name || '')
     const [lastName, setLastName] = useState(profile?.last_name || '')
@@ -32,24 +28,6 @@ export default function Profile({ onBack, setCart }) {
             setLocation(profile.location || null)
         }
     }, [profile])
-
-    useEffect(() => {
-        if (user) {
-            const fetchRecentOrders = async () => {
-                setLoadingOrders(true)
-                const { data, error } = await supabase
-                    .from('orders')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(5)
-
-                if (data) setRecentOrders(data)
-                setLoadingOrders(false)
-            }
-            fetchRecentOrders()
-        }
-    }, [user])
 
     const handleUpdate = async (e) => {
         e.preventDefault()
@@ -79,21 +57,7 @@ export default function Profile({ onBack, setCart }) {
 
     const handleLogout = async () => {
         await signOut()
-        onBack() // Go home
-    }
-
-    const handleReorder = (order) => {
-        if (!setCart) return
-
-        const newCart = {}
-        order.items.forEach(item => {
-            newCart[item.id] = item.qty
-        })
-
-        setCart(newCart)
         onBack()
-
-        alert('¡Pedido añadido al carrito! Redirigiendo para finalizar.')
     }
 
     if (!user) return null
@@ -106,18 +70,18 @@ export default function Profile({ onBack, setCart }) {
                         <h1 className="text-5xl md:text-6xl font-black uppercase tracking-tighter mb-2 italic bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
                             Mi <span className="text-[#e5242c]">Perfil</span>
                         </h1>
-                        <p className="text-gray-400 font-medium">Gestiona tu experiencia en SOJA.</p>
+                        <p className="text-gray-400 font-medium tracking-tight">Gestiona tu experiencia en SOJA.</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={onBack}
-                            className="bg-white/5 hover:bg-white/10 text-white px-6 py-3 rounded-2xl transition-all flex items-center gap-2 font-bold border border-white/10 backdrop-blur-md"
+                            className="bg-white/5 hover:bg-white/10 text-white px-6 py-3 rounded-2xl transition-all flex items-center gap-2 font-bold border border-white/10 backdrop-blur-md active:scale-95"
                         >
                             <FaXmark /> Volver
                         </button>
                         <button
                             onClick={handleLogout}
-                            className="bg-red-500/10 hover:bg-[#e5242c] text-[#e5242c] hover:text-white px-6 py-3 rounded-2xl transition-all flex items-center gap-2 font-bold border border-[#e5242c]/20"
+                            className="bg-red-500/10 hover:bg-[#e5242c] text-[#e5242c] hover:text-white px-6 py-3 rounded-2xl transition-all flex items-center gap-2 font-bold border border-[#e5242c]/20 active:scale-95"
                         >
                             <FaRightFromBracket /> Salir
                         </button>
@@ -144,62 +108,6 @@ export default function Profile({ onBack, setCart }) {
                                 <div className="pt-2">
                                     <PushNotificationToggle user={user} role={profile?.role || 'user'} />
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Recent Orders Section */}
-                        <div className="bg-[#0a0a0a]/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl">
-                            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-[#e5242c] mb-6 flex items-center gap-2">
-                                <FaClock /> Historial de Pedidos
-                            </h3>
-                            <div className="space-y-3">
-                                {loadingOrders ? (
-                                    <div className="space-y-4">
-                                        {[1, 2, 3].map(i => (
-                                            <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-3">
-                                                <div className="flex justify-between">
-                                                    <Skeleton width="40%" height="10px" />
-                                                    <Skeleton width="20%" height="10px" />
-                                                </div>
-                                                <div className="flex justify-between items-end">
-                                                    <Skeleton width="30%" height="8px" />
-                                                    <Skeleton width="25%" height="14px" />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : recentOrders.length > 0 ? (
-                                    recentOrders.map(order => (
-                                        <div key={order.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-colors group">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
-                                                    {new Date(order.created_at).toLocaleDateString()}
-                                                </span>
-                                                <span className={`text-[8px] uppercase font-black px-2 py-0.5 rounded ${order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-green-500/10 text-green-500'}`}>
-                                                    {order.status === 'pending' ? 'Pendiente' : 'Entregado'}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between items-end">
-                                                <p className="text-xs text-gray-400 group-hover:text-white transition-colors">
-                                                    {order.delivery_type === 'delivery' ? 'Domicilio' : 'Llevar'}
-                                                </p>
-                                                <div className="flex flex-col items-end gap-2">
-                                                    <p className="font-bold text-sm">L {Number(order.total).toFixed(2)}</p>
-                                                    <button
-                                                        onClick={() => handleReorder(order)}
-                                                        className="text-[9px] font-black uppercase tracking-widest text-[#e5242c] hover:underline flex items-center gap-1"
-                                                    >
-                                                        <FaRotateLeft /> Re-pedir
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
-                                        <p className="text-xs text-gray-500 italic">No tienes pedidos aún.</p>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -307,7 +215,7 @@ export default function Profile({ onBack, setCart }) {
                                             type="button"
                                             disabled={!isEditing}
                                             onClick={() => setShowLocationPicker(true)}
-                                            className="w-full sm:w-auto bg-[#e5242c]/10 text-[#e5242c] hover:bg-[#e5242c] hover:text-white px-5 py-2.5 rounded-xl font-bold transition-all text-xs border border-[#e5242c]/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                            className="w-full sm:w-auto bg-[#e5242c]/10 text-[#e5242c] hover:bg-[#e5242c] hover:text-white px-5 py-2.5 rounded-xl font-bold transition-all text-xs border border-[#e5242c]/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
                                         >
                                             <FaLocationDot /> {location ? 'Actualizar Pin' : 'Configurar Mapa'}
                                         </button>
@@ -319,14 +227,14 @@ export default function Profile({ onBack, setCart }) {
                                         <button
                                             type="submit"
                                             disabled={loading}
-                                            className="flex-1 bg-[#e5242c] text-white py-4 rounded-2xl font-bold hover:bg-[#c41e25] transition-all flex items-center justify-center gap-2 shadow-xl shadow-red-900/20"
+                                            className="flex-1 bg-[#e5242c] text-white py-4 rounded-2xl font-bold hover:bg-[#c41e25] transition-all flex items-center justify-center gap-2 shadow-xl shadow-red-900/20 active:scale-95"
                                         >
                                             {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><FaFloppyDisk /> Guardar Cambios</>}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setIsEditing(false)}
-                                            className="px-8 bg-white/5 text-gray-400 py-4 rounded-2xl font-bold hover:bg-white/10 transition-all flex items-center justify-center gap-2 border border-white/10"
+                                            className="px-8 bg-white/5 text-gray-400 py-4 rounded-2xl font-bold hover:bg-white/10 transition-all flex items-center justify-center gap-2 border border-white/10 active:scale-95"
                                         >
                                             <FaXmark /> Cancelar
                                         </button>

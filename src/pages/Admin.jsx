@@ -342,50 +342,62 @@ export default function Admin({ setView }) {
 }
 
 function ProductsList({ products, loading, onDelete, onEdit, onToggleStock }) {
-    if (loading) return <div>Cargando productos...</div>
+    if (loading) return (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-pulse">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="h-64 bg-white/5 rounded-3xl" />
+            ))}
+        </div>
+    )
 
     return (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {products.map(product => (
-                <div key={product.id} className={`bg-[#111] border p-4 rounded-2xl flex items-center gap-6 group transition-colors ${product.available === false ? 'border-red-500/30 opacity-60' : 'border-white/5 hover:border-white/20'}`}>
-                    <div className="relative">
-                        <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded-lg" />
+                <div key={product.id} className={`bg-[#111] border rounded-[2rem] overflow-hidden flex flex-col group transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#e5242c]/5 ${product.available === false ? 'border-red-500/30 opacity-60' : 'border-white/5 hover:border-white/20'}`}>
+                    <div className="relative aspect-square overflow-hidden bg-black">
+                        <img
+                            src={product.image || '/img/placeholder-dish.png'}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            onError={(e) => { e.target.src = '/img/logo/logo_blanco.png'; e.target.className = 'w-full h-full object-contain p-8 opacity-20'; }}
+                        />
+                        <div className="absolute top-3 right-3 flex flex-col gap-2">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onToggleStock(product); }}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all ${product.available === false ? 'bg-red-500/80 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                                title={product.available === false ? 'Marcar como disponible' : 'Marcar como agotado'}
+                            >
+                                <FaCheckCircle size={14} className={product.available === false ? 'opacity-40' : 'text-green-400'} />
+                            </button>
+                        </div>
                         {product.available === false && (
-                            <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
-                                <span className="text-red-400 text-[10px] font-black uppercase">Agotado</span>
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4">
+                                <span className="bg-red-500 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">Agotado</span>
                             </div>
                         )}
                     </div>
-                    <div className="flex-1">
-                        <h4 className="font-bold text-lg">{product.name}</h4>
-                        <p className="text-gray-500 text-sm italic capitalize">{product.category}</p>
-                    </div>
-                    <div className="font-bold text-xl text-[#e5242c]">L {product.price}</div>
-                    <div className="flex gap-2 items-center">
-                        {/* Stock Toggle */}
-                        <button
-                            onClick={() => onToggleStock(product)}
-                            title={product.available === false ? 'Marcar como disponible' : 'Marcar como agotado'}
-                            className={`relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none ${product.available === false ? 'bg-red-500/30' : 'bg-green-500/30'
-                                }`}
-                        >
-                            <span className={`absolute top-1 w-4 h-4 rounded-full transition-all duration-300 ${product.available === false
-                                ? 'left-1 bg-red-400'
-                                : 'left-7 bg-green-400'
-                                }`} />
-                        </button>
-                        <button
-                            onClick={() => onEdit(product)}
-                            className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-blue-400 transition-all active:scale-95"
-                        >
-                            <FaEdit />
-                        </button>
-                        <button
-                            onClick={() => onDelete(product.id)}
-                            className="p-3 bg-white/5 hover:bg-red-500/20 rounded-xl text-red-500 transition-all active:scale-95"
-                        >
-                            <FaTrash />
-                        </button>
+                    <div className="p-5 flex-1 flex flex-col">
+                        <div className="mb-3">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-[#e5242c]/60 mb-1 block">{product.category === 'food' ? 'Platillo' : 'Bebida'}</span>
+                            <h4 className="font-bold text-base line-clamp-2 leading-tight group-hover:text-[#e5242c] transition-colors">{product.name}</h4>
+                        </div>
+                        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+                            <div className="font-black text-lg text-white">L {Number(product.price).toFixed(0)}</div>
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={() => onEdit(product)}
+                                    className="w-8 h-8 bg-white/5 hover:bg-blue-500 text-blue-400 hover:text-white rounded-lg flex items-center justify-center transition-all active:scale-95 border border-white/5"
+                                >
+                                    <FaEdit size={12} />
+                                </button>
+                                <button
+                                    onClick={() => onDelete(product.id)}
+                                    className="w-8 h-8 bg-white/5 hover:bg-red-500 text-red-500 hover:text-white rounded-lg flex items-center justify-center transition-all active:scale-95 border border-white/5"
+                                >
+                                    <FaTrash size={12} />
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             ))}
@@ -423,37 +435,44 @@ function ReviewsList({ reviews, loading, onDelete, onUpdate }) {
             </div>
 
             {filteredReviews.length === 0 ? (
-                <div className="text-gray-500 italic p-12 bg-[#111] rounded-[2.5rem] border border-white/5 text-center">
-                    No hay reseñas {moderationTab === 'pending' ? 'pendientes' : 'publicadas'}.
+                <div className="text-gray-500 italic p-12 bg-[#111] rounded-[2.5rem] border border-white/5 text-center flex flex-col items-center gap-4">
+                    <div className="text-4xl opacity-20">💬</div>
+                    <p>No hay reseñas {moderationTab === 'pending' ? 'pendientes' : 'publicadas'}.</p>
                 </div>
             ) : (
-                <div className="grid gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredReviews.map(review => (
-                        <div key={review.id} className="bg-[#111] border border-white/5 p-6 rounded-2xl relative group">
-                            <div className="flex justify-between mb-4">
+                        <div key={review.id} className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] relative group hover:border-[#e5242c]/30 transition-all flex flex-col">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#e5242c]/5 via-transparent to-transparent rounded-bl-full pointer-events-none" />
+                            <div className="flex justify-between items-start mb-6">
                                 <div>
-                                    <h4 className="font-bold">{review.author}</h4>
-                                    <p className="text-xs text-gray-500">{review.meta}</p>
+                                    <h4 className="font-bold text-lg text-white mb-1 group-hover:text-[#e5242c] transition-colors">{review.author}</h4>
+                                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{review.meta || 'Cliente SOJA'}</p>
                                 </div>
-                                <div className="flex text-yellow-500">
-                                    {[...Array(review.rating)].map((_, i) => <FaStar key={i} size={12} />)}
+                                <div className="flex text-yellow-500 bg-yellow-500/5 px-2 py-1 rounded-lg border border-yellow-500/10">
+                                    {[...Array(review.rating)].map((_, i) => <FaStar key={i} size={10} />)}
                                 </div>
                             </div>
-                            <p className="text-gray-300 text-sm mb-4 leading-relaxed group-hover:text-white transition-colors">"{review.content}"</p>
-                            <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                            <div className="relative mb-6 flex-1">
+                                <span className="absolute -left-2 -top-2 text-4xl text-white/5 select-none font-serif">"</span>
+                                <p className="text-gray-300 text-sm leading-relaxed italic pr-4 pl-2 h-[4.5rem] line-clamp-3">
+                                    {review.content}
+                                </p>
+                            </div>
+                            <div className="flex justify-end gap-3 pt-6 border-t border-white/5 mt-auto">
                                 {!review.published && (
                                     <button
                                         onClick={() => handlePublish(review.id)}
-                                        className="bg-green-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform"
+                                        className="h-10 bg-green-500 text-white px-5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-900/20"
                                     >
-                                        <FaCheck /> Publicar
+                                        <FaCheck size={12} /> Publicar
                                     </button>
                                 )}
                                 <button
                                     onClick={() => onDelete(review.id)}
-                                    className="bg-white/5 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+                                    className="h-10 bg-white/5 hover:bg-red-500/10 text-red-500 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 border border-white/5"
                                 >
-                                    <FaTrash /> {review.published ? 'Eliminar' : 'Rechazar'}
+                                    <FaTrash size={12} /> {review.published ? 'Eliminar' : 'Rechazar'}
                                 </button>
                             </div>
                         </div>
@@ -546,7 +565,38 @@ function Dashboard({ orders, reviews, products }) {
 }
 
 function ProductModal({ onClose, product, onSave }) {
-    const [formData, setFormData] = useState(product || { id: '', name: '', price: '', category: 'food', image: '' })
+    const [formData, setFormData] = useState(product || { id: '', name: '', price: '', category: 'food', image: '', available: true })
+    const [uploading, setUploading] = useState(false)
+    const [imagePreview, setImagePreview] = useState(product?.image || '')
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+
+        setUploading(true)
+        try {
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${Math.random()}.${fileExt}`
+            const filePath = `${fileName}`
+
+            let { error: uploadError } = await supabase.storage
+                .from('products')
+                .upload(filePath, file)
+
+            if (uploadError) throw uploadError
+
+            const { data } = supabase.storage
+                .from('products')
+                .getPublicUrl(filePath)
+
+            setFormData({ ...formData, image: data.publicUrl })
+            setImagePreview(data.publicUrl)
+        } catch (error) {
+            alert('Error subiendo imagen: ' + error.message)
+        } finally {
+            setUploading(false)
+        }
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -560,71 +610,101 @@ function ProductModal({ onClose, product, onSave }) {
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-6">
-            <div className="bg-[#111] border border-white/10 p-8 rounded-3xl w-full max-w-lg relative animate-in fade-in zoom-in duration-300">
-                <button onClick={onClose} className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors">
-                    <FaTimes size={24} />
+            <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-2xl relative animate-in fade-in zoom-in duration-300 shadow-2xl">
+                <button onClick={onClose} className="absolute top-8 right-8 text-gray-500 hover:text-white transition-colors bg-white/5 w-10 h-10 rounded-full flex items-center justify-center">
+                    <FaTimes size={20} />
                 </button>
-                <h3 className="text-2xl font-bold mb-8">{product ? 'Editar Producto' : 'Añadir Producto'}</h3>
+                <h3 className="text-3xl font-black mb-8 tracking-tight">{product ? 'Editar Producto' : 'Nuevo Producto'}</h3>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">ID ÚNICO</label>
-                        <input
-                            disabled={!!product}
-                            value={formData.id}
-                            onChange={e => setFormData({ ...formData, id: e.target.value })}
-                            className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-[#e5242c] transition-colors disabled:opacity-50"
-                            placeholder="ej: arroz-frito"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">NOMBRE</label>
-                        <input
-                            value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-[#e5242c] transition-colors"
-                            placeholder="ej: Arroz Frito"
-                            required
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                        <div className="relative aspect-square bg-black rounded-3xl overflow-hidden border border-white/10 group">
+                            {imagePreview ? (
+                                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 gap-4">
+                                    <FaBox size={40} />
+                                    <p className="text-[10px] font-black uppercase tracking-widest">Sin Imagen</p>
+                                </div>
+                            )}
+                            <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer gap-2">
+                                <div className="w-12 h-12 bg-[#e5242c] rounded-2xl flex items-center justify-center text-white shadow-lg">
+                                    <FaPlus />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-white">Subir Foto</span>
+                                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                            </label>
+                            {uploading && (
+                                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-3">
+                                    <div className="w-8 h-8 border-4 border-[#e5242c] border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#e5242c]">Subiendo...</span>
+                                </div>
+                            )}
+                        </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">PRECIO (HNL)</label>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">URL DIRECTA (Opcional)</label>
                             <input
-                                type="number"
-                                value={formData.price}
-                                onChange={e => setFormData({ ...formData, price: e.target.value })}
-                                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-[#e5242c] transition-colors"
-                                placeholder="0.00"
-                                required
+                                value={formData.image}
+                                onChange={e => { setFormData({ ...formData, image: e.target.value }); setImagePreview(e.target.value); }}
+                                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#e5242c] transition-colors text-xs font-medium"
+                                placeholder="https://..."
                             />
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">CATEGORÍA</label>
-                            <select
-                                value={formData.category}
-                                onChange={e => setFormData({ ...formData, category: e.target.value })}
-                                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-[#e5242c] transition-colors"
-                            >
-                                <option value="food">Comida</option>
-                                <option value="drink">Bebida</option>
-                            </select>
+                    </div>
+
+                    <div className="space-y-5">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">NOMBRE DEL PRODUCTO</label>
+                                <input
+                                    value={formData.name}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#e5242c] transition-colors font-bold"
+                                    placeholder="Nombre"
+                                    required
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">ID ÚNICO</label>
+                                <input
+                                    disabled={!!product}
+                                    value={formData.id}
+                                    onChange={e => setFormData({ ...formData, id: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#e5242c] transition-colors disabled:opacity-50 text-xs tracking-wider"
+                                    placeholder="ej: sushi-especial"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">PRECIO (L)</label>
+                                <input
+                                    type="number"
+                                    value={formData.price}
+                                    onChange={e => setFormData({ ...formData, price: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#e5242c] transition-colors font-black text-lg"
+                                    placeholder="0"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">CATEGORÍA</label>
+                                <select
+                                    value={formData.category}
+                                    onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#e5242c] transition-colors font-bold text-sm"
+                                >
+                                    <option value="food">🍱 Comida</option>
+                                    <option value="drink">🥤 Bebida</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="pt-6">
+                            <button className="w-full bg-[#e5242c] text-white py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] hover:bg-[#c41e25] transition-all shadow-xl shadow-[#e5242c]/20 active:scale-95 flex items-center justify-center gap-3">
+                                {product ? <><FaEdit /> Guardar Cambios</> : <><FaPlus /> Crear Producto</>}
+                            </button>
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">URL DE IMAGEN</label>
-                        <input
-                            value={formData.image}
-                            onChange={e => setFormData({ ...formData, image: e.target.value })}
-                            className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-[#e5242c] transition-colors"
-                            placeholder="/img/productos/..."
-                            required
-                        />
-                    </div>
-                    <button className="w-full bg-[#e5242c] text-white py-4 rounded-xl font-bold hover:bg-[#c41e25] transition-all shadow-lg active:scale-95">
-                        {product ? 'Guardar Cambios' : 'Añadir Producto'}
-                    </button>
                 </form>
             </div>
         </div>
@@ -884,86 +964,47 @@ function UsersList({ users, loading, onUpdate }) {
             {users.map(user => {
                 const isAdmin = user.role === 'admin'
                 return (
-                    <div key={user.id} className={`bg-[#111] border p-6 rounded-3xl flex flex-col gap-5 transition-all group relative overflow-hidden ${isAdmin ? 'border-[#e5242c]/30' : 'border-white/5 hover:border-[#e5242c]/30'
-                        }`}>
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#e5242c]/5 rounded-bl-full -mr-12 -mt-12 transition-all group-hover:scale-110" />
+                    <div key={user.id} className={`bg-[#111] border p-6 rounded-[2.5rem] flex flex-col gap-5 transition-all group relative overflow-hidden ${isAdmin ? 'border-[#e5242c]/30' : 'border-white/5 hover:border-white/20'}`}>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#e5242c]/5 to-transparent rounded-bl-full -mr-16 -mt-16 transition-all group-hover:scale-110" />
 
-                        <div className="flex items-center gap-4">
-                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform rotate-3 ${isAdmin ? 'bg-[#e5242c]/20 text-[#e5242c]' : 'bg-[#e5242c]/10 text-[#e5242c]'
-                                }`}>
-                                <FaUser size={24} />
+                        <div className="flex items-center gap-4 relative z-10">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-transform ${isAdmin ? 'bg-[#e5242c]/20 text-[#e5242c]' : 'bg-white/5 text-gray-400 font-black'}`}>
+                                {user.first_name?.[0] || <FaUser />}
                             </div>
                             <div>
                                 <h4 className="font-bold text-lg text-white leading-tight">
                                     {user.first_name || 'Sin Nombre'} {user.last_name || ''}
                                 </h4>
-                                <div className="flex gap-2 mt-1">
-                                    {user.role === 'admin' && <span className="bg-[#e5242c] text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Administrador</span>}
-                                    {user.role === 'delivery' && <span className="bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Repartidor</span>}
-                                    {(!user.role || user.role === 'user') && <span className="bg-white/10 text-gray-300 text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Cliente</span>}
+                                <div className="flex gap-2 mt-2">
+                                    <span className={`text-[9px] px-2.5 py-1 rounded-full font-black uppercase tracking-widest ${isAdmin ? 'bg-[#e5242c] text-white' : user.role === 'delivery' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-400'}`}>
+                                        {user.role === 'admin' ? 'SYSTEM ADMIN' : user.role === 'delivery' ? 'DRIVER' : 'USER'}
+                                    </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-4 border-t border-white/5 space-y-2">
-                            <p className="text-gray-400 text-sm flex items-center gap-2">
-                                <span className="text-[#e5242c] text-xs">●</span> {user.phone || 'Sin teléfono'}
-                            </p>
-                            <p className="text-gray-400 text-sm flex items-center gap-2">
-                                <span className="text-[#e5242c] text-xs">●</span> {user.email || 'Sin correo registrado'}
-                            </p>
-                            <p className="text-[10px] text-gray-600 font-mono truncate bg-black/30 p-2 rounded-lg mt-2" title={user.id}>
-                                UID: {user.id}
-                            </p>
-
-                            {/* Role Selector */}
-                            {isAdmin ? (
-                                <div className="mt-4 flex items-center gap-3 bg-[#e5242c]/5 border border-[#e5242c]/20 rounded-2xl px-4 py-3">
-                                    <span className="text-[#e5242c] text-lg">🔒</span>
-                                    <div>
-                                        <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-widest">Rol Protegido</p>
-                                        <p className="text-white text-xs font-bold">Administrador del Sistema</p>
-                                    </div>
+                        <div className="pt-4 border-t border-white/5 space-y-4 relative z-10">
+                            <div className="space-y-2">
+                                <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest pl-1">Información de Contacto</p>
+                                <div className="bg-black/30 p-4 rounded-2xl border border-white/5 space-y-2">
+                                    <p className="text-gray-300 text-sm font-medium flex items-center gap-3">
+                                        <FaClock size={12} className="text-[#e5242c]" /> {user.phone || 'Sin Teléfono'}
+                                    </p>
+                                    <p className="text-gray-300 text-[11px] font-medium flex items-center gap-3 truncate">
+                                        <span className="text-[#e5242c]">📧</span> {user.email}
+                                    </p>
                                 </div>
-                            ) : (
-                                <div className="relative mt-4">
-                                    <button
-                                        onClick={() => setOpenDropdown(openDropdown === user.id ? null : user.id)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm flex items-center justify-between hover:border-[#e5242c]/40 transition-all group/btn"
-                                    >
-                                        <span className={`font-bold ${roleColors[user.role] || 'text-gray-400'}`}>
-                                            {roleLabels[user.role] || 'Cliente Estándar'}
-                                        </span>
-                                        <FaChevronDown className={`text-gray-500 transition-transform ${openDropdown === user.id ? 'rotate-180' : ''}`} size={12} />
-                                    </button>
+                            </div>
 
-                                    {openDropdown === user.id && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-2xl overflow-hidden z-50 shadow-2xl shadow-black/50">
-                                            {Object.entries(roleLabels).filter(([r]) => r !== 'admin').map(([roleVal, roleLabel]) => (
-                                                <button
-                                                    key={roleVal}
-                                                    onClick={() => handleRoleChange(user.id, roleVal, user.email)}
-                                                    className={`w-full px-5 py-3.5 text-left text-sm font-bold flex items-center justify-between transition-colors hover:bg-white/5 ${user.role === roleVal ? 'text-[#e5242c] bg-[#e5242c]/5' : 'text-gray-300'
-                                                        }`}
-                                                >
-                                                    <span>{roleLabel}</span>
-                                                    {user.role === roleVal && <span className="w-2 h-2 rounded-full bg-[#e5242c]" />}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                            <div className="bg-[#e5242c]/5 border border-[#e5242c]/10 rounded-2xl px-5 py-4">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[#e5242c] text-[10px] font-black uppercase tracking-[0.2em]">Permisos de Cuenta</span>
+                                    <span className="text-[#e5242c]">🔒</span>
                                 </div>
-                            )}
-
-                            {/* Delete button — only for non-admins */}
-                            {!isAdmin && (
-                                <button
-                                    onClick={() => handleDelete(user.id, `${user.first_name} ${user.last_name}`)}
-                                    className="w-full mt-2 flex items-center justify-center gap-2 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-wider"
-                                >
-                                    <FaTrash size={10} /> Eliminar Usuario
-                                </button>
-                            )}
+                                <p className="text-white text-xs font-bold leading-relaxed opacity-60 italic">
+                                    El cambio de roles ha sido deshabilitado globalmente por seguridad.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 )

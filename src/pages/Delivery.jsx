@@ -532,41 +532,49 @@ export default function Delivery({ setView }) {
                                         </div>
                                     </div>
 
-                                    <h3 className="text-xl font-bold mb-1">{order.client_name}</h3>
-                                    <p className="text-gray-400 text-sm flex items-center gap-2 mb-4">
-                                        <FaPhone size={12} className="text-[#e5242c]" /> {order.client_phone}
-                                    </p>
-
-                                    <div className="bg-white/5 rounded-2xl p-4 flex items-start gap-3 mb-6">
-                                        <FaMapMarkerAlt className="text-[#e5242c] mt-1 shrink-0" />
-                                        <p className="text-sm text-gray-300 leading-tight">
-                                            {order.address || 'Ver ubicación en mapa'}
+                                    <div className="flex flex-col gap-1 mb-6">
+                                        <h3 className="text-2xl font-black text-white leading-tight">{order.client_name}</h3>
+                                        <p className="text-gray-400 text-sm font-bold flex items-center gap-2">
+                                            <FaPhone size={12} className="text-green-500" /> {order.client_phone}
                                         </p>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                        <button
-                                            onClick={() => setSelectedOrder(order)}
-                                            className="col-span-2 bg-white/5 hover:bg-white/10 text-white py-4 rounded-2xl font-bold border border-white/10 transition-all active:scale-95 text-sm"
-                                        >
-                                            Ver Detalles del Pedido
-                                        </button>
+                                    <div className="bg-black/40 rounded-3xl p-5 border border-white/5 space-y-3 mb-8">
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-2.5 bg-[#e5242c]/10 rounded-2xl text-[#e5242c] shrink-0">
+                                                <FaMapMarkerAlt size={20} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Dirección Escrita</p>
+                                                <p className="text-base text-white font-bold leading-snug">
+                                                    {order.address || 'Ver ubicación en mapa'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
 
+                                    <div className="grid grid-cols-1 gap-3">
                                         {order.status === 'prepared' ? (
                                             <button
                                                 onClick={() => updateStatus(order.id, 'shipped')}
-                                                className="col-span-2 bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-600/20"
+                                                className="w-full bg-blue-600 text-white py-5 rounded-[1.8rem] font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-600/20"
                                             >
-                                                <FaMotorcycle /> Iniciar Entrega
+                                                <FaMotorcycle size={16} /> Iniciar Entrega
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => updateStatus(order.id, 'delivered')}
-                                                className="col-span-2 bg-green-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all active:scale-95 shadow-lg shadow-green-600/20"
+                                                className="w-full bg-green-600 text-white py-5 rounded-[1.8rem] font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-green-700 transition-all active:scale-95 shadow-xl shadow-green-600/20"
                                             >
-                                                <FaCheckCircle /> Finalizar Entrega
+                                                <FaCheckCircle size={16} /> Finalizar Entrega
                                             </button>
                                         )}
+                                        <button
+                                            onClick={() => setSelectedOrder(order)}
+                                            className="w-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                        >
+                                            <FaBox size={14} /> Detalles & Mapa
+                                        </button>
                                     </div>
                                 </div>
                             </div>
