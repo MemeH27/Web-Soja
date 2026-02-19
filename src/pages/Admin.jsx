@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FaBox, FaStar, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaTimes, FaUser, FaClock, FaCheckCircle, FaMotorcycle, FaChevronDown, FaBars, FaMapMarkerAlt } from 'react-icons/fa'
+import { FaBox, FaStar, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaTimes, FaUser, FaClock, FaCheckCircle, FaMotorcycle, FaChevronDown, FaBars, FaMapMarkerAlt, FaChartLine, FaCheck } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useMenu } from '../hooks/useMenu'
 import { useReviews } from '../hooks/useReviews'
@@ -43,7 +43,7 @@ export default function Admin({ setView }) {
             </div>
         )
     }
-    const [activeTab, setActiveTab] = useState('products')
+    const [activeTab, setActiveTab] = useState('dashboard')
     const [trackingOrder, setTrackingOrder] = useState(null)
     const { menu, loading: menuLoading, setMenu } = useMenu({ adminMode: true })
     const { reviews, loading: reviewsLoading, setReviews } = useReviews()
@@ -203,6 +203,12 @@ export default function Admin({ setView }) {
 
                 <nav className="flex-1 space-y-2 mt-4 md:mt-0">
                     <button
+                        onClick={() => setActiveTab('dashboard')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-[#e5242c] text-white font-bold' : 'hover:bg-white/5 text-gray-400'}`}
+                    >
+                        <FaChartLine /> Dashboard
+                    </button>
+                    <button
                         onClick={() => setActiveTab('products')}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'products' ? 'bg-[#e5242c] text-white font-bold' : 'hover:bg-white/5 text-gray-400'}`}
                     >
@@ -251,11 +257,12 @@ export default function Admin({ setView }) {
             <main className="flex-1 p-6 md:p-10 overflow-y-auto">
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                     <h2 className="text-2xl md:text-3xl font-bold">
-                        {activeTab === 'products' ? 'Gestionar Productos' :
-                            activeTab === 'orders' ? 'Gestionar Pedidos' :
-                                activeTab === 'users' ? 'Gestionar Usuarios' :
-                                    activeTab === 'delivery' ? 'Gestionar Repartidores' :
-                                        'Gestionar Reseñas'}
+                        {activeTab === 'dashboard' ? 'Dashboard de Negocio' :
+                            activeTab === 'products' ? 'Gestionar Productos' :
+                                activeTab === 'orders' ? 'Gestionar Pedidos' :
+                                    activeTab === 'users' ? 'Gestionar Usuarios' :
+                                        activeTab === 'delivery' ? 'Gestionar Repartidores' :
+                                            'Gestionar Reseñas'}
                     </h2>
                     <div className="flex items-center gap-4">
                         <PushNotificationToggle user={user} role="admin" compact />
@@ -289,7 +296,9 @@ export default function Admin({ setView }) {
                     </div>
                 </header>
 
-                {activeTab === 'products' ? (
+                {activeTab === 'dashboard' ? (
+                    <Dashboard orders={ordersList} reviews={reviews} products={menu} />
+                ) : activeTab === 'products' ? (
                     <ProductsList products={menu} loading={menuLoading} onDelete={handleDeleteProduct} onEdit={(p) => { setEditingProduct(p); setShowProductModal(true); }} onToggleStock={handleToggleStock} />
                 ) : activeTab === 'orders' ? (
                     <OrdersList
@@ -304,7 +313,7 @@ export default function Admin({ setView }) {
                 ) : activeTab === 'delivery' ? (
                     <DeliveryList users={deliveryUsers} loading={loadingDelivery} onUpdate={fetchDeliveryUsers} />
                 ) : (
-                    <ReviewsList reviews={reviews} loading={reviewsLoading} onDelete={handleDeleteReview} />
+                    <ReviewsList reviews={reviews} loading={reviewsLoading} onDelete={handleDeleteReview} onUpdate={() => window.location.reload()} />
                 )}
             </main>
 
@@ -384,33 +393,154 @@ function ProductsList({ products, loading, onDelete, onEdit, onToggleStock }) {
     )
 }
 
-function ReviewsList({ reviews, loading, onDelete }) {
+function ReviewsList({ reviews, loading, onDelete, onUpdate }) {
+    const [moderationTab, setModerationTab] = useState('pending')
     if (loading) return <div>Cargando reseñas...</div>
 
+    const handlePublish = async (id) => {
+        const { error } = await supabase.from('reviews').update({ published: true }).eq('id', id)
+        if (error) alert(error.message)
+        else onUpdate()
+    }
+
+    const filteredReviews = reviews.filter(r => moderationTab === 'pending' ? !r.published : r.published)
+
     return (
-        <div className="grid gap-4">
-            {reviews.map(review => (
-                <div key={review.id} className="bg-[#111] border border-white/5 p-6 rounded-2xl relative group">
-                    <div className="flex justify-between mb-4">
-                        <div>
-                            <h4 className="font-bold">{review.author}</h4>
-                            <p className="text-xs text-gray-500">{review.meta}</p>
+        <div className="space-y-6">
+            <div className="flex p-1 bg-white/5 rounded-xl border border-white/10 w-fit">
+                <button
+                    onClick={() => setModerationTab('pending')}
+                    className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${moderationTab === 'pending' ? 'bg-[#e5242c] text-white' : 'text-gray-500 hover:text-white'}`}
+                >
+                    Pendientes ({reviews.filter(r => !r.published).length})
+                </button>
+                <button
+                    onClick={() => setModerationTab('published')}
+                    className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${moderationTab === 'published' ? 'bg-[#e5242c] text-white' : 'text-gray-500 hover:text-white'}`}
+                >
+                    Publicadas ({reviews.filter(r => r.published).length})
+                </button>
+            </div>
+
+            {filteredReviews.length === 0 ? (
+                <div className="text-gray-500 italic p-12 bg-[#111] rounded-[2.5rem] border border-white/5 text-center">
+                    No hay reseñas {moderationTab === 'pending' ? 'pendientes' : 'publicadas'}.
+                </div>
+            ) : (
+                <div className="grid gap-4">
+                    {filteredReviews.map(review => (
+                        <div key={review.id} className="bg-[#111] border border-white/5 p-6 rounded-2xl relative group">
+                            <div className="flex justify-between mb-4">
+                                <div>
+                                    <h4 className="font-bold">{review.author}</h4>
+                                    <p className="text-xs text-gray-500">{review.meta}</p>
+                                </div>
+                                <div className="flex text-yellow-500">
+                                    {[...Array(review.rating)].map((_, i) => <FaStar key={i} size={12} />)}
+                                </div>
+                            </div>
+                            <p className="text-gray-300 text-sm mb-4 leading-relaxed group-hover:text-white transition-colors">"{review.content}"</p>
+                            <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                                {!review.published && (
+                                    <button
+                                        onClick={() => handlePublish(review.id)}
+                                        className="bg-green-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform"
+                                    >
+                                        <FaCheck /> Publicar
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => onDelete(review.id)}
+                                    className="bg-white/5 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+                                >
+                                    <FaTrash /> {review.published ? 'Eliminar' : 'Rechazar'}
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex text-yellow-500">
-                            {[...Array(review.rating)].map((_, i) => <FaStar key={i} size={12} />)}
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
+function Dashboard({ orders, reviews, products }) {
+    const today = new Date().toISOString().split('T')[0]
+    const todayOrders = orders.filter(o => o.created_at.startsWith(today) && o.status !== 'cancelled')
+    const totalToday = todayOrders.reduce((acc, o) => acc + Number(o.total || 0), 0)
+
+    const deliveredOrders = orders.filter(o => o.status === 'delivered')
+    const totalHistorical = deliveredOrders.reduce((acc, o) => acc + Number(o.total || 0), 0)
+
+    // Popular product estimation
+    const itemCounts = {}
+    deliveredOrders.forEach(o => {
+        (o.items || []).forEach(item => {
+            const name = item.name || item.id
+            itemCounts[name] = (itemCounts[name] || 0) + 1
+        })
+    })
+    const sortedProducts = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])
+    const topProduct = sortedProducts[0]?.[0] || 'N/A'
+
+    return (
+        <div className="space-y-10">
+            {/* Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                    { label: 'Ventas de Hoy', value: `L ${totalToday.toFixed(2)}`, sub: `${todayOrders.length} pedidos hoy`, icon: '💰', color: 'bg-green-500/10 text-green-500' },
+                    { label: 'Pedidos Pendientes', value: orders.filter(o => o.status === 'pending').length, sub: 'Requieren atención', icon: '🔔', color: 'bg-yellow-500/10 text-yellow-500' },
+                    { label: 'Producto Estrella', value: topProduct, sub: 'Más vendido histórico', icon: '🍣', color: 'bg-[#e5242c]/10 text-[#e5242c]' },
+                    { label: 'Calificación Prom.', value: (reviews.reduce((acc, r) => acc + r.rating, 0) / (reviews.length || 1)).toFixed(1), sub: `${reviews.length} reseñas totales`, icon: '⭐', color: 'bg-blue-500/10 text-blue-500' }
+                ].map((card, i) => (
+                    <div key={i} className="bg-[#111] border border-white/5 p-6 rounded-[2.5rem] relative overflow-hidden group hover:border-white/20 transition-all">
+                        <div className="relative z-10">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">{card.label}</p>
+                            <h3 className="text-3xl font-black mb-1">{card.value}</h3>
+                            <p className="text-xs text-gray-500 font-bold">{card.sub}</p>
+                        </div>
+                        <div className={`absolute top-4 right-6 w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${card.color} rotate-6 group-hover:rotate-0 transition-transform`}>
+                            {card.icon}
                         </div>
                     </div>
-                    <p className="text-gray-300 text-sm mb-4 leading-relaxed group-hover:text-white transition-colors">"{review.content}"</p>
-                    <div className="flex justify-end pt-4 border-t border-white/5">
-                        <button
-                            onClick={() => onDelete(review.id)}
-                            className="text-red-500 text-xs font-bold hover:underline flex items-center gap-1"
-                        >
-                            <FaTrash /> Eliminar Reseña
-                        </button>
+                ))}
+            </div>
+
+            {/* Historical Stats Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-[#111] border border-white/5 p-8 rounded-[2.5rem]">
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                        <span className="text-blue-500">📊</span> Resumen General
+                    </h3>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl">
+                            <span className="text-gray-400 font-bold">Ventas Históricas (Excl. Cancelados)</span>
+                            <span className="text-white font-black">L {totalHistorical.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl">
+                            <span className="text-gray-400 font-bold">Total de Clientes Registrados</span>
+                            <span className="text-white font-black">{products.length} platos en menú</span>
+                        </div>
                     </div>
                 </div>
-            ))}
+
+                <div className="bg-[#111] border border-white/5 p-8 rounded-[2.5rem]">
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                        <span className="text-[#e5242c]">🥢</span> Ranking de Productos
+                    </h3>
+                    <div className="space-y-4">
+                        {sortedProducts.slice(0, 3).map(([name, count], i) => (
+                            <div key={i} className="flex justify-between items-center">
+                                <span className="text-gray-400 text-sm font-bold flex items-center gap-3">
+                                    <span className="w-6 h-6 bg-white/5 rounded-lg flex items-center justify-center text-[10px]">{i + 1}</span>
+                                    {name}
+                                </span>
+                                <span className="text-white font-black text-xs uppercase tracking-widest">{count} vendidos</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }

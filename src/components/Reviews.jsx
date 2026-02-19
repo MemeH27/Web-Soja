@@ -3,10 +3,15 @@ import { FaStar, FaQuoteLeft } from 'react-icons/fa6'
 // Removed REVIEWS import
 import ScrollReveal from './ScrollReveal'
 import { useReviews } from '../hooks/useReviews'
+import { useAuth } from '../hooks/useAuth.jsx'
+import ReviewForm from './ReviewForm'
+import { useState } from 'react'
 
 export default function Reviews() {
     const scrollRef = useRef(null)
     const { reviews, loading } = useReviews()
+    const { user } = useAuth()
+    const [showForm, setShowForm] = useState(false)
 
     // Infinite Scroll Logic (CSS animation preferred, but kept via JS for fallback or control)
     useEffect(() => {
@@ -45,7 +50,13 @@ export default function Reviews() {
             <ScrollReveal>
                 <div className="max-w-[1180px] mx-auto px-6 mb-16 text-center">
                     <p className="text-[#e5242c] uppercase tracking-widest text-sm font-bold mb-3">Testimonios</p>
-                    <h2 className="text-4xl md:text-5xl font-serif font-bold text-white">Lo que dicen de nosotros</h2>
+                    <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">Lo que dicen de nosotros</h2>
+                    <button
+                        onClick={() => setShowForm(true)}
+                        className="bg-[#e5242c]/10 hover:bg-[#e5242c] text-[#e5242c] hover:text-white border border-[#e5242c]/20 px-8 py-3 rounded-xl font-bold transition-all active:scale-95"
+                    >
+                        Dejar mi opinión
+                    </button>
                 </div>
             </ScrollReveal>
 
@@ -80,6 +91,14 @@ export default function Reviews() {
                     </div>
                 ))}
             </div>
+
+            {showForm && (
+                <ReviewForm
+                    user={user}
+                    onClose={() => setShowForm(false)}
+                    onSave={() => window.location.reload()}
+                />
+            )}
         </section>
     )
 }
