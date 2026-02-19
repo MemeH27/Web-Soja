@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { FaUser, FaClock, FaEnvelope, FaPhone, FaShieldHalved, FaXmark, FaMotorcycle, FaSearch } from 'react-icons/fa6'
+import { FaUser, FaClock, FaEnvelope, FaPhone, FaShieldHalved, FaXmark, FaMotorcycle } from 'react-icons/fa6'
+import { FaSearch } from 'react-icons/fa'
 import { supabase } from '../../supabaseClient'
 
 export default function UsersList({ users, loading, onUpdate }) {
