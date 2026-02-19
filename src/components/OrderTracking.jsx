@@ -183,18 +183,22 @@ export default function OrderTracking({ order, onBack, onCancel, isAdmin = false
                 {/* Mobile Logo Back Button */}
                 <button
                     onClick={onBack}
-                    className="absolute top-4 left-4 z-[500] bg-black/50 p-2 rounded-full md:hidden backdrop-blur-sm border border-white/10 hover:bg-black/70 transition-colors"
+                    className="absolute z-[500] bg-black/50 p-2 rounded-full md:hidden backdrop-blur-sm border border-white/10 hover:bg-black/70 transition-colors"
+                    style={{ top: 'calc(env(safe-area-inset-top) + 1rem)', left: '1rem' }}
                 >
                     <img src="/img/logo/logo_blanco.png" alt="SOJA" className="h-8 w-8 object-contain" />
                 </button>
             </div>
 
             {/* Sidebar / Bottom Sheet */}
-            <div className={`
-                w-full md:w-[400px] bg-[#1a1a1a] md:border-r border-t md:border-t-0 border-[#333] flex flex-col 
-                z-20 shadow-[0_-5px_30px_rgba(0,0,0,0.5)] order-2 md:order-1
-                h-[45%] md:h-full transition-all duration-300
-            `}>
+            <div
+                className={`
+                    w-full md:w-[400px] bg-[#1a1a1a] md:border-r border-t md:border-t-0 border-[#333] flex flex-col 
+                    z-20 shadow-[0_-5px_30px_rgba(0,0,0,0.5)] order-2 md:order-1
+                    h-[45%] md:h-full transition-all duration-300
+                `}
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
                 <div className="p-4 md:p-6 border-b border-[#333] bg-[#151515] shrink-0 flex justify-between items-start md:block">
                     <div>
                         <div className="flex justify-between items-center mb-4">

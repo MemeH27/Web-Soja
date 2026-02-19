@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { FaMotorcycle, FaBox, FaMapMarkerAlt, FaCheckCircle, FaSignOutAlt, FaPhone, FaClock, FaTimes, FaUser, FaArrowRight, FaEye, FaEyeSlash } from 'react-icons/fa'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
-import PushNotificationToggle from '../components/PushNotificationToggle'
+import PushNotificationToggle from '../components/shared/PushNotificationToggle'
 
 function DeliveryAssignmentToast({ order, onDismiss }) {
     useEffect(() => {
@@ -450,7 +450,7 @@ export default function Delivery({ setView }) {
                 />
             )}
             {/* Header */}
-            <header className="bg-[#111] border-b border-white/10 p-4 md:p-6 sticky top-0 z-10 flex justify-between items-center backdrop-blur-md bg-opacity-80">
+            <header className="bg-[#111] border-b border-white/10 p-4 md:p-6 sticky top-0 z-50 flex justify-between items-center backdrop-blur-md bg-opacity-80 pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}>
                 <div className="flex items-center gap-3">
                     <img src="/img/logo/logo_blanco.png" alt="SOJA" className="h-7 md:h-8" />
                     <div className="flex flex-col">
@@ -484,7 +484,7 @@ export default function Delivery({ setView }) {
                 </div>
             </header>
 
-            <main className="p-6 max-w-md mx-auto">
+            <main className="p-6 max-w-md mx-auto" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}>
                 <div className="mb-8">
                     <h2 className="text-2xl font-bold mb-2">Panel de Entregas 🛵</h2>
                     <p className="text-gray-500 text-sm leading-tight">
@@ -603,8 +603,8 @@ function OrderDetailsModal({ order, onClose }) {
     const displayAddress = order.address || order.location?.address || (typeof order.location === 'string' ? order.location : null) || 'Dirección no especificada'
 
     return (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex flex-col p-4 md:p-8 overflow-y-auto">
-            <div className="max-w-xl mx-auto w-full bg-[#111] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative animate-in fade-in zoom-in duration-300 mb-8">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex flex-col overflow-y-auto" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+            <div className="max-w-xl mx-auto w-full bg-[#111] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative animate-in fade-in zoom-in duration-300 mb-8 mt-4">
                 {/* Close Button */}
                 <button
                     onClick={onClose}

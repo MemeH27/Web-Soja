@@ -39,7 +39,7 @@ export default function Order({
             {/* Main Content Area (Menu) */}
             <section className="flex-1 flex flex-col md:h-full md:overflow-hidden">
                 {/* Header */}
-                <header className="p-4 md:p-6 border-b border-white/10 bg-[#1a1a1a] flex justify-between items-center shrink-0 sticky top-0 z-30 md:static">
+                <header className="p-4 md:p-6 border-b border-white/10 bg-[#1a1a1a] flex justify-between items-center shrink-0 sticky top-0 z-30 md:static" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)' }}>
                     <div className="flex items-center gap-4">
                         <button
                             className="bg-[#222] hover:bg-[#333] text-white p-2 rounded-full transition-colors"

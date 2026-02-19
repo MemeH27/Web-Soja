@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { FaBars, FaXmark, FaUtensils, FaInstagram, FaFacebookF, FaWhatsapp, FaCircleUser, FaRightFromBracket, FaShieldHalved } from 'react-icons/fa6'
 import { FaClock } from 'react-icons/fa'
 import { useAuth } from '../hooks/useAuth.jsx'
-import PushNotificationToggle from './PushNotificationToggle'
+import PushNotificationToggle from './shared/PushNotificationToggle'
 
 export default function Navbar({ setView, user, setShowAuthModal }) {
     const { profile, role, signOut } = useAuth()
@@ -33,7 +33,7 @@ export default function Navbar({ setView, user, setShowAuthModal }) {
         <header
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileMenuOpen ? 'bg-black/90 backdrop-blur-md shadow-lg' : 'bg-transparent'
                 }`}
-            style={{ paddingTop: 'max(env(safe-area-inset-top), 0px)' }}
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
             <div className={`max-w-[1180px] mx-auto px-6 flex justify-between items-center ${scrolled || mobileMenuOpen ? 'py-3' : 'py-5'}`}>
                 <a href="#inicio" className="flex items-center gap-2 z-50 relative" onClick={() => handleLinkClick('#inicio')}>

@@ -64,7 +64,7 @@ export default function MyOrders({ onBack, setCart, setView }) {
     ]
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10">
+        <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 2rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}>
             <div className="max-w-4xl mx-auto">
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                     <div className="flex items-center gap-4">

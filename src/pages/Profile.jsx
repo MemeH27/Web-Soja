@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { supabase } from '../supabaseClient'
 import { FaUser, FaPhone, FaLocationDot, FaPenToSquare, FaFloppyDisk, FaXmark, FaRightFromBracket } from 'react-icons/fa6'
 import LocationPicker from '../components/LocationPicker'
-import PushNotificationToggle from '../components/PushNotificationToggle'
+import PushNotificationToggle from '../components/shared/PushNotificationToggle'
 
 export default function Profile({ onBack, setCart }) {
     const { user, profile, updateProfile, signOut } = useAuth()
@@ -63,7 +63,7 @@ export default function Profile({ onBack, setCart }) {
     if (!user) return null
 
     return (
-        <div className="min-h-screen pt-24 pb-12 bg-black text-white px-6">
+        <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 2rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}>
             <div className="max-w-4xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
                     <div>

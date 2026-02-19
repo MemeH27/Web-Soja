@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 export default function Footer({ setView }) {
     const { role } = useAuth()
     return (
-        <footer id="footer" className="footer bg-[#0a0a0a] border-t border-white/5 pt-20 pb-10 px-6">
+        <footer id="footer" className="footer bg-[#0a0a0a] border-t border-white/5 pt-20 px-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2.5rem)' }}>
             <div className="max-w-[1180px] mx-auto">
                 <ScrollReveal>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">

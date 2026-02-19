@@ -100,7 +100,7 @@ export default function Cart({
                 )}
             </div>
 
-            <div className="p-6 bg-[#111] border-t border-white/10">
+            <div className="p-6 bg-[#111] border-t border-white/10" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)' }}>
                 <div className="space-y-2 mb-6">
                     <div className="flex justify-between text-gray-400 text-sm">
                         <span>Subtotal:</span>
