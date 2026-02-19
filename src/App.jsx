@@ -22,6 +22,7 @@ import Admin from './pages/Admin'
 import Delivery from './pages/Delivery'
 import RoleGuard from './components/RoleGuard'
 import MyOrders from './pages/MyOrders'
+import ClickSpark from './components/Animations/ClickSpark'
 
 
 
@@ -451,6 +452,7 @@ export default function App() {
 
   return (
     <div className="site-shell relative">
+      <ClickSpark sparkColor="#e5242c" sparkCount={10} sparkSize={12} duration={500} />
       {/* Admin New Order Toast */}
       {newOrderToast && role === 'admin' && (
         <NewOrderToast

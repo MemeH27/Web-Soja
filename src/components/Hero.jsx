@@ -1,5 +1,7 @@
 import { FaUtensils, FaLocationDot } from 'react-icons/fa6'
 import ScrollReveal from './ScrollReveal'
+import ShinyText from './Animations/ShinyText'
+import VariableProximity from './Animations/VariableProximity'
 
 export default function Hero({ setView }) {
     return (
@@ -18,14 +20,24 @@ export default function Hero({ setView }) {
 
             <div className="hero-content relative z-10 w-full max-w-[1180px] mx-auto px-6 pt-20">
                 <ScrollReveal>
-                    <p className="kicker text-[#e5242c] uppercase tracking-[0.3em] font-extrabold mb-4 text-sm md:text-base animate-pulse">
-                        Restaurante SOJA
-                    </p>
+                    <div className="mb-4">
+                        <ShinyText
+                            text="Restaurante SOJA"
+                            className="kicker text-[#e5242c] uppercase tracking-[0.3em] font-extrabold text-sm md:text-base"
+                            speed={3}
+                        />
+                    </div>
                 </ScrollReveal>
 
                 <ScrollReveal delay={200}>
                     <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif font-bold leading-[1] md:leading-[1.1] mb-8 text-white drop-shadow-2xl">
-                        Sabor milenario <br />
+                        <VariableProximity
+                            label="Sabor milenario"
+                            fromFontVariationSettings="'wght' 400"
+                            toFontVariationSettings="'wght' 900"
+                            radius={100}
+                            falloff="linear"
+                        /> <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#e5242c] to-[#e5242c] animate-gradient text-glow">
                             con fuego y tradicion
                         </span>
