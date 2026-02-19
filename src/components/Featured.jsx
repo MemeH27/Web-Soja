@@ -4,6 +4,7 @@ import { featuredDishIds, featuredHighlights } from '../data'
 import ScrollReveal from './ScrollReveal'
 import SpotlightCard from './Animations/SpotlightCard'
 import ShinyText from './Animations/ShinyText'
+import Skeleton from './Animations/Skeleton'
 
 function formatHNL(value) {
     return `L ${value.toFixed(2)}`
