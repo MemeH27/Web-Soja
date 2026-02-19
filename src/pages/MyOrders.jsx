@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FaChevronLeft, FaClock, FaBox, FaMapMarkerAlt, FaCheckCircle, FaTimesCircle, FaFilter, FaCalendarAlt, FaRotateLeft, FaShoppingCart, FaArrowRight } from 'react-icons/fa'
+import { FaChevronLeft, FaClock, FaBox, FaMapMarkerAlt, FaCheckCircle, FaTimesCircle, FaFilter, FaCalendarAlt, FaRedo, FaShoppingCart, FaArrowRight } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
@@ -178,7 +178,7 @@ export default function MyOrders({ onBack, setCart, setView }) {
                                             onClick={() => handleReorder(order)}
                                             className="flex-1 sm:flex-none h-12 bg-green-500 hover:bg-green-600 text-white px-6 rounded-2xl flex items-center justify-center gap-2 transition-all font-bold active:scale-95 shadow-lg shadow-green-900/20"
                                         >
-                                            <FaRotateLeft size={14} />
+                                            <FaRedo size={14} />
                                             <span className="text-sm">Pedir de nuevo</span>
                                         </button>
                                         <button
