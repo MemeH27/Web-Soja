@@ -10,7 +10,7 @@ export default function UsersList({ users, loading, onUpdate }) {
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {users.map(user => {
                     const isAdmin = user.role === 'admin'
                     const isDelivery = user.role === 'delivery'
@@ -19,26 +19,26 @@ export default function UsersList({ users, loading, onUpdate }) {
                         <div
                             key={user.id}
                             onClick={() => setSelectedUser(user)}
-                            className="bg-[#111] border border-white/5 p-4 rounded-2xl flex items-center justify-between group hover:border-[#e5242c]/30 hover:bg-white/[0.02] transition-all cursor-pointer"
+                            className="bg-[#111] border border-white/5 p-4 rounded-2xl flex flex-col gap-3 group hover:border-[#e5242c]/30 hover:bg-white/[0.02] transition-all cursor-pointer relative"
                         >
-                            <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isAdmin ? 'bg-[#e5242c]/20 text-[#e5242c]' : isDelivery ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-500'}`}>
-                                    {isDelivery ? <FaMotorcycle size={16} /> : <FaUser size={16} />}
+                            <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isAdmin ? 'bg-[#e5242c]/20 text-[#e5242c]' : isDelivery ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-500'}`}>
+                                    {isDelivery ? <FaMotorcycle size={14} /> : <FaUser size={14} />}
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-white text-sm">
-                                        {user.first_name?.[0].toUpperCase() + user.first_name?.slice(1)} {user.last_name || ''}
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-white text-xs truncate">
+                                        {user.first_name} {user.last_name}
                                     </h4>
-                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">{user.email}</p>
+                                    <p className="text-[9px] text-gray-500 truncate font-medium">{user.email}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${isAdmin ? 'bg-[#e5242c] text-white' : isDelivery ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-500'}`}>
+                            <div className="flex items-center justify-between border-t border-white/5 pt-2">
+                                <span className={`text-[7px] px-2 py-0.5 rounded-full font-black uppercase tracking-[0.1em] ${isAdmin ? 'bg-[#e5242c] text-white' : isDelivery ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-500'}`}>
                                     {user.role || 'USER'}
                                 </span>
-                                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-600 group-hover:text-white transition-colors">
-                                    <FaClock size={12} />
+                                <div className="text-gray-600 group-hover:text-white transition-colors">
+                                    <FaClock size={10} />
                                 </div>
                             </div>
                         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FaChevronLeft, FaClock, FaBox, FaMapMarkerAlt, FaCheckCircle, FaTimesCircle, FaFilter, FaCalendarAlt, FaRedo, FaShoppingCart, FaArrowRight } from 'react-icons/fa'
+import { FaChevronLeft, FaClock, FaBox, FaMapMarkerAlt, FaCheckCircle, FaTimesCircle, FaCalendarAlt, FaRedo, FaShoppingCart, FaArrowRight, FaTimes, FaUser, FaPhone } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../hooks/useAuth.jsx'
@@ -10,7 +10,9 @@ export default function MyOrders({ onBack, setCart, setView }) {
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState('all') // all, delivered, cancelled
     const [selectedMonth, setSelectedMonth] = useState('all')
-    const [showReorderModal, setShowReorderModal] = useState(false)
+    const [showReorderSuccess, setShowReorderSuccess] = useState(false)
+    const [viewingOrder, setViewingOrder] = useState(null)
+    const [confirmingReorder, setConfirmingReorder] = useState(null)
 
     useEffect(() => {
         if (user) {
@@ -31,16 +33,22 @@ export default function MyOrders({ onBack, setCart, setView }) {
         setLoading(false)
     }
 
-    const handleReorder = (order) => {
+    const handleConfirmReorder = (order) => {
         if (!setCart) return
 
         const newCart = {}
-        order.items.forEach(item => {
-            newCart[item.id] = (newCart[item.id] || 0) + item.qty
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || [])
+
+        items.forEach(item => {
+            const id = item.id || item.productId
+            if (id) {
+                newCart[id] = (newCart[id] || 0) + (item.qty || item.quantity || 1)
+            }
         })
 
         setCart(newCart)
-        setShowReorderModal(true)
+        setConfirmingReorder(null)
+        setShowReorderSuccess(true)
     }
 
     const filteredOrders = orders.filter(order => {
@@ -161,7 +169,7 @@ export default function MyOrders({ onBack, setCart, setView }) {
                                             </span>
                                         </div>
                                         <p className="text-white font-bold flex items-center gap-3">
-                                            {order.items?.length || 0} productos
+                                            {(typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || [])).length} productos
                                             <span className="text-gray-700">•</span>
                                             <span className="text-gray-400 text-sm font-normal">{new Date(order.created_at).toLocaleDateString('es-HN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                                         </p>
@@ -175,14 +183,14 @@ export default function MyOrders({ onBack, setCart, setView }) {
                                     </div>
                                     <div className="flex items-center gap-3 w-full sm:w-auto">
                                         <button
-                                            onClick={() => handleReorder(order)}
+                                            onClick={() => setConfirmingReorder(order)}
                                             className="flex-1 sm:flex-none h-12 bg-green-500 hover:bg-green-600 text-white px-6 rounded-2xl flex items-center justify-center gap-2 transition-all font-bold active:scale-95 shadow-lg shadow-green-900/20"
                                         >
                                             <FaRedo size={14} />
                                             <span className="text-sm">Pedir de nuevo</span>
                                         </button>
                                         <button
-                                            onClick={() => {/* Ver detalle */ }}
+                                            onClick={() => setViewingOrder(order)}
                                             className="w-12 h-12 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-white/5 active:scale-95"
                                             title="Ver Detalles"
                                         >
@@ -196,15 +204,115 @@ export default function MyOrders({ onBack, setCart, setView }) {
                 )}
             </div>
 
-            {/* Reorder Success Modal */}
+            {/* Modal de Detalles / Confirmación de Reorder */}
             <AnimatePresence>
-                {showReorderModal && (
+                {(viewingOrder || confirmingReorder) && (
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setShowReorderModal(false)}
+                            onClick={() => { setViewingOrder(null); setConfirmingReorder(null); }}
+                            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-xl bg-[#111] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
+                        >
+                            {confirmingReorder && (
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-green-500" />
+                            )}
+
+                            <div className="p-8">
+                                <div className="flex justify-between items-start mb-8">
+                                    <div>
+                                        <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-[0.2rem] mb-2">
+                                            {confirmingReorder ? 'Confirmar Repetición de Pedido' : 'Detalles del Pedido'}
+                                        </p>
+                                        <h3 className="text-3xl font-black text-white leading-tight">
+                                            #{(viewingOrder || confirmingReorder).id.slice(0, 8).toUpperCase()}
+                                        </h3>
+                                    </div>
+                                    <button
+                                        onClick={() => { setViewingOrder(null); setConfirmingReorder(null); }}
+                                        className="w-10 h-10 bg-white/5 hover:bg-white/10 text-gray-400 rounded-full flex items-center justify-center transition-colors"
+                                    >
+                                        <FaTimes size={18} />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="bg-black/40 rounded-3xl p-6 border border-white/5 space-y-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-2.5 bg-[#e5242c]/10 rounded-xl text-[#e5242c]">
+                                                <FaMapMarkerAlt size={18} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 uppercase font-black mb-1">Dirección de Entrega</p>
+                                                <p className="text-sm text-gray-200 font-medium leading-tight">
+                                                    {(viewingOrder || confirmingReorder).address || 'No especificada'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">Productos solicitados</h4>
+                                        <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                            {(typeof (viewingOrder || confirmingReorder).items === 'string' ? JSON.parse((viewingOrder || confirmingReorder).items) : ((viewingOrder || confirmingReorder).items || [])).map((item, idx) => (
+                                                <div key={idx} className="flex justify-between items-center bg-white/[0.03] p-4 rounded-2xl border border-white/5">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-8 h-8 bg-[#e5242c] text-white rounded-lg flex items-center justify-center font-black text-sm">
+                                                            {item.qty || item.quantity || 1}
+                                                        </div>
+                                                        <span className="text-white font-bold text-sm">{item.name}</span>
+                                                    </div>
+                                                    <span className="text-gray-400 font-mono text-sm leading-none">L {Number(item.total || (item.price * (item.qty || item.quantity || 1))).toFixed(2)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-white/5 flex justify-between items-center">
+                                        <span className="text-gray-500 font-black uppercase tracking-widest text-[10px]">Total Pagado</span>
+                                        <span className="text-3xl font-black text-white tracking-tight">L {Number((viewingOrder || confirmingReorder).total).toFixed(2)}</span>
+                                    </div>
+
+                                    <div className="pt-4">
+                                        {confirmingReorder ? (
+                                            <button
+                                                onClick={() => handleConfirmReorder(confirmingReorder)}
+                                                className="w-full bg-green-500 hover:bg-green-600 text-white py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-3 transition-all shadow-xl shadow-green-600/20 active:scale-95"
+                                            >
+                                                <FaRedo /> Confirmar y Añadir al Carrito
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => setViewingOrder(null)}
+                                                className="w-full bg-white/5 hover:bg-white/10 text-white py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] transition-all border border-white/5"
+                                            >
+                                                Cerrar Detalles
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Reorder Success Modal */}
+            <AnimatePresence>
+                {showReorderSuccess && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowReorderSuccess(false)}
                             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
                         />
                         <motion.div
@@ -226,13 +334,13 @@ export default function MyOrders({ onBack, setCart, setView }) {
                                 </div>
                                 <div className="grid grid-cols-1 w-full gap-3">
                                     <button
-                                        onClick={() => setView('cart')}
+                                        onClick={() => { setView('cart'); setShowReorderSuccess(false); }}
                                         className="bg-white text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-gray-200 transition-all active:scale-95"
                                     >
-                                        <FaShoppingCart size={14} /> Ir a Pagar <FaArrowRight />
+                                        <FaShoppingCart size={14} /> Ir al Carrito <FaArrowRight />
                                     </button>
                                     <button
-                                        onClick={() => setShowReorderModal(false)}
+                                        onClick={() => setShowReorderSuccess(false)}
                                         className="bg-white/5 text-gray-400 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all active:scale-95"
                                     >
                                         Seguir Navegando
@@ -246,3 +354,4 @@ export default function MyOrders({ onBack, setCart, setView }) {
         </div>
     )
 }
+

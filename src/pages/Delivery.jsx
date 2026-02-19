@@ -493,7 +493,7 @@ export default function Delivery({ setView }) {
                 </div>
             </header>
 
-            <main className="p-6 max-w-md mx-auto" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}>
+            <main className="p-6 max-w-7xl mx-auto" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}>
                 <div className="mb-8">
                     <h2 className="text-2xl font-bold mb-2">Panel de Entregas 🛵</h2>
                     <p className="text-gray-500 text-sm leading-tight mb-6">
@@ -540,69 +540,105 @@ export default function Delivery({ setView }) {
                         <p className="text-gray-400 font-medium italic">No tienes pedidos asignados por ahora.</p>
                     </div>
                 ) : (
-                    <div className="space-y-6">
-                        {orders.map(order => (
-                            <div key={order.id} className="bg-[#111] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="p-6">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`w-3 h-3 rounded-full ${order.status === 'shipped' ? 'bg-blue-500 animate-pulse' : 'bg-yellow-500'}`} />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                                {order.status === 'shipped' ? 'En Camino' : 'Listo para Salir'}
-                                            </span>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] text-gray-500 uppercase font-mono">#{order.id.slice(0, 8)}</p>
-                                        </div>
-                                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {orders.map(order => {
+                            const items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || [])
+                            const isHistory = activeTab === 'history'
 
-                                    <div className="flex flex-col gap-1 mb-6">
-                                        <h3 className="text-2xl font-black text-white leading-tight">{order.client_name}</h3>
-                                        <p className="text-gray-400 text-sm font-bold flex items-center gap-2">
-                                            <FaPhone size={12} className="text-green-500" /> {order.client_phone}
-                                        </p>
-                                    </div>
-
-                                    <div className="bg-black/40 rounded-3xl p-5 border border-white/5 space-y-3 mb-8">
-                                        <div className="flex items-start gap-4">
-                                            <div className="p-2.5 bg-[#e5242c]/10 rounded-2xl text-[#e5242c] shrink-0">
-                                                <FaMapMarkerAlt size={20} />
+                            return (
+                                <div key={order.id} className={`bg-[#111] border ${isHistory ? 'border-white/5' : 'border-white/10'} rounded-[2rem] overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col`}>
+                                    <div className="p-6 flex-1 flex flex-col">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-3 h-3 rounded-full ${order.status === 'delivered' ? 'bg-green-500' : order.status === 'shipped' ? 'bg-blue-500 animate-pulse' : 'bg-yellow-500'}`} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                                    {order.status === 'delivered' ? 'Entregado' : order.status === 'shipped' ? 'En Camino' : 'Listo para Salir'}
+                                                </span>
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Dirección Escrita</p>
-                                                <p className="text-base text-white font-bold leading-snug">
-                                                    {order.address || 'Ver ubicación en mapa'}
+                                            <div className="text-right">
+                                                <p className="text-[10px] text-gray-500 uppercase font-mono">#{order.id.slice(0, 8)}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-1 mb-4">
+                                            <h3 className="text-xl font-black text-white leading-tight">{order.client_name}</h3>
+                                            <p className="text-gray-400 text-xs font-bold flex items-center gap-2">
+                                                <FaPhone size={10} className="text-green-500" /> {order.client_phone}
+                                            </p>
+                                        </div>
+
+                                        {isHistory && (
+                                            <div className="mb-4 bg-white/5 rounded-2xl p-3 border border-white/5">
+                                                <div className="flex items-center gap-2 text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">
+                                                    <FaClock size={10} /> Entregado el:
+                                                </div>
+                                                <p className="text-white text-xs font-bold">
+                                                    {new Date(order.updated_at || order.created_at).toLocaleString('es-HN', {
+                                                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                                                    })}
                                                 </p>
                                             </div>
+                                        )}
+
+                                        <div className="bg-black/40 rounded-2xl p-4 border border-white/5 space-y-2 mb-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="p-1.5 bg-[#e5242c]/10 rounded-lg text-[#e5242c] shrink-0">
+                                                    <FaMapMarkerAlt size={14} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-0.5">Dirección</p>
+                                                    <p className="text-xs text-white font-bold leading-snug truncate">
+                                                        {order.address || 'Ver en mapa'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-6 flex-1">
+                                            <p className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-2 px-1">Resumen</p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {items.slice(0, 3).map((item, i) => (
+                                                    <span key={i} className="bg-white/5 border border-white/10 px-2 py-1 rounded-lg text-[10px] font-bold text-gray-300">
+                                                        {item.qty || item.quantity}x {item.name.split(' ')[0]}
+                                                    </span>
+                                                ))}
+                                                {items.length > 3 && (
+                                                    <span className="text-[10px] font-bold text-gray-500 py-1 ml-1">+{items.length - 3} más</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-2 mt-auto">
+                                            {!isHistory && (
+                                                <>
+                                                    {order.status === 'prepared' ? (
+                                                        <button
+                                                            onClick={() => updateStatus(order.id, 'shipped')}
+                                                            className="w-full bg-blue-600 text-white py-4 rounded-[1.2rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-600/20"
+                                                        >
+                                                            <FaMotorcycle size={14} /> Iniciar Entrega
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => updateStatus(order.id, 'delivered')}
+                                                            className="w-full bg-green-600 text-white py-4 rounded-[1.2rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-green-700 transition-all active:scale-95 shadow-xl shadow-green-600/20"
+                                                        >
+                                                            <FaCheckCircle size={14} /> Finalizar Entrega
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                            <button
+                                                onClick={() => setSelectedOrder(order)}
+                                                className={`w-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white py-3 rounded-[1rem] font-black uppercase text-[9px] tracking-widest border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-2`}
+                                            >
+                                                <FaBox size={12} /> Ver Detalles Completos
+                                            </button>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {order.status === 'prepared' ? (
-                                            <button
-                                                onClick={() => updateStatus(order.id, 'shipped')}
-                                                className="w-full bg-blue-600 text-white py-5 rounded-[1.8rem] font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-600/20"
-                                            >
-                                                <FaMotorcycle size={16} /> Iniciar Entrega
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => updateStatus(order.id, 'delivered')}
-                                                className="w-full bg-green-600 text-white py-5 rounded-[1.8rem] font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-green-700 transition-all active:scale-95 shadow-xl shadow-green-600/20"
-                                            >
-                                                <FaCheckCircle size={16} /> Finalizar Entrega
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => setSelectedOrder(order)}
-                                            className="w-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-2"
-                                        >
-                                            <FaBox size={14} /> Detalles & Mapa
-                                        </button>
-                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 )}
             </main>

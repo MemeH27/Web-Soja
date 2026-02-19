@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { FaTimes, FaBox, FaPlus, FaEdit } from 'react-icons/fa'
+import { FaTimes, FaBox, FaPlus, FaEdit, FaCheck } from 'react-icons/fa'
 import { supabase } from '../../supabaseClient'
 
 export default function ProductModal({ onClose, product, onSave }) {
-    const [formData, setFormData] = useState(product || { id: '', name: '', price: '', category: 'food', image: '', available: true })
+    const [formData, setFormData] = useState(product || { id: '', name: '', price: '', category: 'food', image: '' })
     const [uploading, setUploading] = useState(false)
     const [imagePreview, setImagePreview] = useState(product?.image || '')
 
@@ -15,6 +15,11 @@ export default function ProductModal({ onClose, product, onSave }) {
             alert('Por favor selecciona un archivo de imagen válido.')
             return
         }
+
+        // Vista previa local inmediata
+        const reader = new FileReader()
+        reader.onloadend = () => setImagePreview(reader.result)
+        reader.readAsDataURL(file)
 
         setUploading(true)
         try {
@@ -39,7 +44,6 @@ export default function ProductModal({ onClose, product, onSave }) {
             if (!data?.publicUrl) throw new Error('No se pudo generar la URL pública')
 
             setFormData({ ...formData, image: data.publicUrl })
-            setImagePreview(data.publicUrl)
         } catch (error) {
             console.error('Upload error:', error)
             alert('Error al procesar la imagen: ' + (error.message || 'Error desconocido'))
@@ -50,7 +54,9 @@ export default function ProductModal({ onClose, product, onSave }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        const { error } = await supabase.from('products').upsert(formData)
+        // Eliminamos campos innecesarios que no existen en la DB actual
+        const { available, ...cleanData } = formData
+        const { error } = await supabase.from('products').upsert(cleanData)
         if (error) alert(error.message)
         else {
             onSave()
@@ -77,7 +83,7 @@ export default function ProductModal({ onClose, product, onSave }) {
                                     <p className="text-[10px] font-black uppercase tracking-widest">Sin Imagen</p>
                                 </div>
                             )}
-                            <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer gap-2">
+                            <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer gap-2 z-10">
                                 <div className="w-12 h-12 bg-[#e5242c] rounded-2xl flex items-center justify-center text-white shadow-lg">
                                     <FaPlus />
                                 </div>
@@ -85,13 +91,12 @@ export default function ProductModal({ onClose, product, onSave }) {
                                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                             </label>
                             {uploading && (
-                                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-3">
+                                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-3 z-20">
                                     <div className="w-8 h-8 border-4 border-[#e5242c] border-t-transparent rounded-full animate-spin" />
                                     <span className="text-[10px] font-black uppercase tracking-widest text-[#e5242c]">Subiendo...</span>
                                 </div>
                             )}
                         </div>
-
                     </div>
 
                     <div className="space-y-5">
@@ -128,16 +133,28 @@ export default function ProductModal({ onClose, product, onSave }) {
                                     required
                                 />
                             </div>
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">CATEGORÍA</label>
-                                <select
-                                    value={formData.category}
-                                    onChange={e => setFormData({ ...formData, category: e.target.value })}
-                                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#e5242c] transition-colors font-bold text-sm"
-                                >
-                                    <option value="food">🍱 Comida</option>
-                                    <option value="drink">🥤 Bebida</option>
-                                </select>
+                            <div className="col-span-2 mt-2">
+                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">CATEGORÍA</label>
+                                <div className="flex gap-3">
+                                    {[
+                                        { id: 'food', label: 'Comida', icon: '🍱' },
+                                        { id: 'drink', label: 'Bebida', icon: '🥤' }
+                                    ].map(cat => (
+                                        <button
+                                            key={cat.id}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, category: cat.id })}
+                                            className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border transition-all font-bold text-sm ${formData.category === cat.id
+                                                ? 'bg-[#e5242c]/10 border-[#e5242c] text-white shadow-[0_0_20px_rgba(229,36,44,0.1)]'
+                                                : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'
+                                                }`}
+                                        >
+                                            <span className="text-lg">{cat.icon}</span>
+                                            {cat.label}
+                                            {formData.category === cat.id && <FaCheck size={10} className="text-[#e5242c]" />}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
@@ -152,3 +169,4 @@ export default function ProductModal({ onClose, product, onSave }) {
         </div>
     )
 }
+
