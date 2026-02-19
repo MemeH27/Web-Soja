@@ -12,13 +12,18 @@ export default function DecryptedText({
     parentClassName = "",
     animateOn = 'view' // 'view' or 'hover'
 }) {
-    const [displayText, setDisplayText] = useState(text);
     const [isHovered, setIsHovered] = useState(false);
     const [isRevealing, setIsRevealing] = useState(false);
     const containerRef = useRef(null);
-    const isInView = useInView(containerRef, { once: true, amount: 0.5 });
+    const isInView = useInView(containerRef, { once: true, amount: 0.1 });
 
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
+
+    const generateRandomText = (original) => {
+        return original.split('').map(char => char === ' ' ? ' ' : characters[Math.floor(Math.random() * characters.length)]).join('');
+    };
+
+    const [displayText, setDisplayText] = useState(() => animateOn === 'view' ? generateRandomText(text) : text);
 
     useEffect(() => {
         const shouldAnimate = (animateOn === 'view' && isInView) || (animateOn === 'hover' && isHovered);
