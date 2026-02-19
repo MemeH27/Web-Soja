@@ -103,21 +103,21 @@ export default function Profile({ onBack, setCart }) {
             <div className="max-w-4xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
                     <div>
-                        <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-2 italic">
+                        <h1 className="text-5xl md:text-6xl font-black uppercase tracking-tighter mb-2 italic bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
                             Mi <span className="text-[#e5242c]">Perfil</span>
                         </h1>
-                        <p className="text-gray-400">Administra tu información y direcciones de entrega.</p>
+                        <p className="text-gray-400 font-medium">Gestiona tu experiencia en SOJA.</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={onBack}
-                            className="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-6 py-3 rounded-xl transition-all flex items-center gap-2 font-bold border border-white/10"
+                            className="bg-white/5 hover:bg-white/10 text-white px-6 py-3 rounded-2xl transition-all flex items-center gap-2 font-bold border border-white/10 backdrop-blur-md"
                         >
                             <FaXmark /> Volver
                         </button>
                         <button
                             onClick={handleLogout}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-6 py-3 rounded-xl transition-all flex items-center gap-2 font-bold border border-red-500/20"
+                            className="bg-red-500/10 hover:bg-[#e5242c] text-[#e5242c] hover:text-white px-6 py-3 rounded-2xl transition-all flex items-center gap-2 font-bold border border-[#e5242c]/20"
                         >
                             <FaRightFromBracket /> Salir
                         </button>
@@ -127,19 +127,19 @@ export default function Profile({ onBack, setCart }) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Sidebar / Stats */}
                     <div className="lg:col-span-1 space-y-6">
-                        <div className="bg-[#111] border border-white/10 rounded-3xl p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-[#e5242c]" />
-                            <div className="w-24 h-24 bg-[#e5242c]/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <div className="bg-[#0a0a0a]/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#e5242c] to-transparent" />
+                            <div className="w-24 h-24 bg-gradient-to-br from-[#e5242c]/20 to-transparent rounded-full flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-500 border border-white/5">
                                 <FaUser size={40} className="text-[#e5242c]" />
                             </div>
-                            <h2 className="text-2xl font-bold mb-1">{profile?.first_name} {profile?.last_name}</h2>
-                            <p className="text-gray-500 text-sm mb-6 flex items-center gap-2">
-                                <FaEnvelope size={12} /> {user.email}
+                            <h2 className="text-2xl font-bold mb-1 tracking-tight">{profile?.first_name} {profile?.last_name}</h2>
+                            <p className="text-gray-500 text-sm mb-6 font-medium">
+                                {user.email}
                             </p>
                             <div className="w-full pt-6 border-t border-white/5 space-y-4">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-400 font-medium tracking-wide uppercase text-[10px]">Estatus de Cuenta</span>
-                                    <span className="bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-green-500/20">Activa</span>
+                                <div className="flex justify-between items-center bg-white/5 p-3 rounded-xl">
+                                    <span className="text-gray-400 font-bold uppercase text-[9px] tracking-widest">Cuenta</span>
+                                    <span className="text-green-500 text-[10px] font-black uppercase tracking-widest">Verificada</span>
                                 </div>
                                 <div className="pt-2">
                                     <PushNotificationToggle user={user} role={profile?.role || 'user'} />
@@ -148,11 +148,11 @@ export default function Profile({ onBack, setCart }) {
                         </div>
 
                         {/* Recent Orders Section */}
-                        <div className="bg-[#111] border border-white/10 rounded-3xl p-8 shadow-2xl">
-                            <h3 className="font-bold text-sm uppercase tracking-widest text-[#e5242c] mb-6 flex items-center gap-2">
-                                <FaClock size={14} /> Pedidos Recientes
+                        <div className="bg-[#0a0a0a]/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl">
+                            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-[#e5242c] mb-6 flex items-center gap-2">
+                                <FaClock /> Historial de Pedidos
                             </h3>
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {loadingOrders ? (
                                     <div className="space-y-4">
                                         {[1, 2, 3].map(i => (
@@ -206,10 +206,11 @@ export default function Profile({ onBack, setCart }) {
 
                     {/* Main Content */}
                     <div className="lg:col-span-2">
-                        <div className="bg-[#111] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-xl font-bold flex items-center gap-3">
-                                    Información Personal
+                        <div className="bg-[#0a0a0a]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#e5242c]/5 rounded-full blur-[80px] -mr-32 -mt-32 pointer-events-none" />
+                            <div className="flex justify-between items-center mb-10">
+                                <h3 className="text-2xl font-bold tracking-tight">
+                                    Datos Personales
                                 </h3>
                                 {!isEditing && (
                                     <button

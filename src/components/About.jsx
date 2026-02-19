@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { FaCheck } from 'react-icons/fa6'
 import ScrollReveal from './ScrollReveal'
-import DecryptedText from './Animations/DecryptedText'
+import Typewriter from './Animations/Typewriter'
 
 export default function About() {
     const [years, setYears] = useState(0)
@@ -30,14 +30,14 @@ export default function About() {
             const timer = setInterval(() => {
                 const timePassed = Date.now() - start
                 if (timePassed >= duration) {
-                    setYears(15)
+                    setYears(5)
                     setStars(5)
                     clearInterval(timer)
                     return
                 }
                 // Ease out animation
                 const progress = timePassed / duration
-                setYears(Math.floor(progress * 15))
+                setYears(Math.floor(progress * 5))
                 setStars(Math.floor(progress * 5))
             }, 50)
             return () => clearInterval(timer)
@@ -55,9 +55,9 @@ export default function About() {
                     <div className="relative">
                         <div className="relative z-10 rounded-3xl overflow-hidden border border-white/10 shadow-2xl group">
                             <img
-                                src="/img/banner.jpg" // Fixed missing image
+                                src="/img/banner.jpg"
                                 alt="Interior del restaurante SOJA"
-                                className="w-full h-64 md:h-auto object-cover transition-transform duration-700 group-hover:scale-105" // Controlled height on mobile
+                                className="w-full h-80 md:h-[500px] lg:h-[600px] object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                             {/* Overlay Stats */}
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6 md:p-8 pt-24">
@@ -81,21 +81,20 @@ export default function About() {
 
                 <ScrollReveal delay={200}>
                     <div>
-                        <DecryptedText
-                            text="Nuestra Esencia"
-                            className="text-[#e5242c] uppercase tracking-widest text-base md:text-sm font-bold mb-3"
-                            animateOn="view"
-                        />
+                        <div className="mb-3">
+                            <Typewriter
+                                text="Nuestra Esencia"
+                                className="text-[#e5242c] uppercase tracking-widest text-base md:text-sm font-bold"
+                            />
+                        </div>
                         <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6 leading-tight">
                             Mas que comida, <br /> una tradicion familiar.
                         </h2>
-                        <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-8">
-                            <DecryptedText
+                        <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-8 min-h-[6em]">
+                            <Typewriter
                                 text="En SOJA, cada platillo cuenta una historia. Desde nuestros inicios humildes hasta convertirnos en un referente en Santa Rosa de Copan, hemos mantenido intacta nuestra pasion por el autentico sabor oriental."
-                                speed={40}
-                                maxIterations={15}
-                                sequential={true}
-                                animateOn="view"
+                                speed={15}
+                                delay={500}
                             />
                         </p>
 
