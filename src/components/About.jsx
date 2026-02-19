@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { FaCheck } from 'react-icons/fa6'
 import ScrollReveal from './ScrollReveal'
+import DecryptedText from './Animations/DecryptedText'
 
 export default function About() {
     const [years, setYears] = useState(0)
@@ -80,12 +81,22 @@ export default function About() {
 
                 <ScrollReveal delay={200}>
                     <div>
-                        <p className="text-[#e5242c] uppercase tracking-widest text-base md:text-sm font-bold mb-3">Nuestra Esencia</p> {/* Increased mobile text size */}
+                        <DecryptedText
+                            text="Nuestra Esencia"
+                            className="text-[#e5242c] uppercase tracking-widest text-base md:text-sm font-bold mb-3"
+                            animateOn="view"
+                        />
                         <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6 leading-tight">
                             Mas que comida, <br /> una tradicion familiar.
                         </h2>
                         <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-8">
-                            En SOJA, cada platillo cuenta una historia. Desde nuestros inicios humildes hasta convertirnos en un referente en Santa Rosa de Copan, hemos mantenido intacta nuestra pasion por el autentico sabor oriental.
+                            <DecryptedText
+                                text="En SOJA, cada platillo cuenta una historia. Desde nuestros inicios humildes hasta convertirnos en un referente en Santa Rosa de Copan, hemos mantenido intacta nuestra pasion por el autentico sabor oriental."
+                                speed={40}
+                                maxIterations={15}
+                                sequential={true}
+                                animateOn="view"
+                            />
                         </p>
 
                         <ul className="space-y-4 mb-10">

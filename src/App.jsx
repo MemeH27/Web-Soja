@@ -131,11 +131,7 @@ function Home({ setView, menu, menuLoading, user, setShowAuthModal }) {
       <main id="inicio">
         <Hero setView={setView} />
         <InfoStrip />
-        {menuLoading ? (
-          <div className="py-24 text-center text-white">Cargando menú...</div>
-        ) : (
-          <Featured setView={setView} menu={menu} />
-        )}
+        <Featured setView={setView} menu={menu} loading={menuLoading} />
         <About />
         <Reviews />
       </main>
@@ -519,7 +515,7 @@ export default function App() {
           </RoleGuard>
         } />
         <Route path="/profile" element={
-          <Profile onBack={() => navigate('/')} />
+          <Profile onBack={() => navigate('/')} setCart={setCart} />
         } />
         <Route path="/my-orders" element={
           <MyOrders onBack={() => navigate('/')} />

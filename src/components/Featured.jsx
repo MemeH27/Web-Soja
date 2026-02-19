@@ -9,8 +9,10 @@ function formatHNL(value) {
     return `L ${value.toFixed(2)}`
 }
 
-export default function Featured({ setView, menu = [] }) {
+export default function Featured({ setView, menu = [], loading = false }) {
     const featuredItems = useMemo(() => menu.filter((item) => featuredDishIds.includes(item.id)), [menu])
+
+    const skeletons = [1, 2, 3]
 
     return (
         <section id="destacados" className="section max-w-[1180px] mx-auto px-6 py-24">
@@ -33,7 +35,21 @@ export default function Featured({ setView, menu = [] }) {
             </ScrollReveal>
 
             <div className="featured-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {featuredItems.map((item, index) => (
+                {loading ? skeletons.map(i => (
+                    <div key={i} className="bg-[#111] border border-white/10 rounded-3xl overflow-hidden p-1">
+                        <div className="h-64 rounded-[1.8rem] skeleton mb-6" />
+                        <div className="p-6 space-y-4">
+                            <Skeleton width="70%" height="24px" />
+                            <Skeleton width="100%" height="16px" />
+                            <Skeleton width="100%" height="16px" />
+                            <div className="flex gap-4 pt-4 border-t border-white/5">
+                                <Skeleton width="20%" height="12px" />
+                                <Skeleton width="20%" height="12px" />
+                            </div>
+                            <Skeleton width="100%" height="45px" className="mt-4" />
+                        </div>
+                    </div>
+                )) : featuredItems.map((item, index) => (
                     <ScrollReveal key={item.id} delay={index * 100}>
                         <SpotlightCard
                             className="group h-full"

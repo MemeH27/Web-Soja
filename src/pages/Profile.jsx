@@ -4,8 +4,10 @@ import { supabase } from '../supabaseClient'
 import { FaUser, FaPhone, FaLocationDot, FaEnvelope, FaPenToSquare, FaFloppyDisk, FaXmark, FaRightFromBracket, FaClock } from 'react-icons/fa6'
 import LocationPicker from '../components/LocationPicker'
 import PushNotificationToggle from '../components/PushNotificationToggle'
+import Skeleton from '../components/Animations/Skeleton'
+import { FaRotateLeft } from 'react-icons/fa6'
 
-export default function Profile({ onBack }) {
+export default function Profile({ onBack, setCart }) {
     const { user, profile, updateProfile, signOut, refreshProfile } = useAuth()
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -80,6 +82,20 @@ export default function Profile({ onBack }) {
         onBack() // Go home
     }
 
+    const handleReorder = (order) => {
+        if (!setCart) return
+
+        const newCart = {}
+        order.items.forEach(item => {
+            newCart[item.id] = item.qty
+        })
+
+        setCart(newCart)
+        onBack()
+
+        alert('¡Pedido añadido al carrito! Redirigiendo para finalizar.')
+    }
+
     if (!user) return null
 
     return (
@@ -138,8 +154,19 @@ export default function Profile({ onBack }) {
                             </h3>
                             <div className="space-y-4">
                                 {loadingOrders ? (
-                                    <div className="py-4 text-center">
-                                        <div className="w-6 h-6 border-2 border-[#e5242c] border-t-transparent rounded-full animate-spin mx-auto" />
+                                    <div className="space-y-4">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-3">
+                                                <div className="flex justify-between">
+                                                    <Skeleton width="40%" height="10px" />
+                                                    <Skeleton width="20%" height="10px" />
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <Skeleton width="30%" height="8px" />
+                                                    <Skeleton width="25%" height="14px" />
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : recentOrders.length > 0 ? (
                                     recentOrders.map(order => (
@@ -156,7 +183,15 @@ export default function Profile({ onBack }) {
                                                 <p className="text-xs text-gray-400 group-hover:text-white transition-colors">
                                                     {order.delivery_type === 'delivery' ? 'Domicilio' : 'Llevar'}
                                                 </p>
-                                                <p className="font-bold text-sm">L {Number(order.total).toFixed(2)}</p>
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <p className="font-bold text-sm">L {Number(order.total).toFixed(2)}</p>
+                                                    <button
+                                                        onClick={() => handleReorder(order)}
+                                                        className="text-[9px] font-black uppercase tracking-widest text-[#e5242c] hover:underline flex items-center gap-1"
+                                                    >
+                                                        <FaRotateLeft /> Re-pedir
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))

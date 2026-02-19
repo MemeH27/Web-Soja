@@ -338,7 +338,7 @@
   font-size: clamp(1.9rem, 4vw, 2.7rem);
 }
 
-.about-content > p {
+.about-content>p {
   margin: 0;
   color: #d4d4d4;
 }
@@ -454,7 +454,7 @@
   padding-left: 1rem;
 }
 
-.schedule-card li + li {
+.schedule-card li+li {
   margin-top: 0.35rem;
 }
 
@@ -592,7 +592,7 @@
   color: #cfcfcf;
 }
 
-.footer-list li + li {
+.footer-list li+li {
   margin-top: 0.4rem;
 }
 
@@ -799,7 +799,7 @@
   gap: 0.7rem;
 }
 
-.cart-line + .cart-line {
+.cart-line+.cart-line {
   margin-top: 0.45rem;
 }
 
@@ -843,7 +843,7 @@
   justify-content: space-between;
 }
 
-.summary-box p + p {
+.summary-box p+p {
   margin-top: 0.35rem;
 }
 
@@ -885,13 +885,23 @@
 }
 
 @keyframes autoScroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @keyframes heroZoom {
-  from { transform: scale(1.03); }
-  to { transform: scale(1.1); }
+  from {
+    transform: scale(1.03);
+  }
+
+  to {
+    transform: scale(1.1);
+  }
 }
 
 @media (max-width: 1200px) {
@@ -922,6 +932,7 @@
 }
 
 @media (max-width: 900px) {
+
   .about-section,
   .schedule-layout,
   .featured-grid,
@@ -973,6 +984,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .hero-bg,
   .reviews-track {
     animation: none;
@@ -980,10 +992,62 @@
 }
 
 @keyframes shiny {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .animate-shiny {
   animation: shiny linear infinite;
+}
+
+/* Skeleton Screens */
+@keyframes skeleton-pulse {
+  0% {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  50% {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  100% {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.05);
+  animation: skeleton-pulse 2s ease-in-out infinite;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.05),
+      transparent);
+  animation: skeleton-shimmer 1.5s infinite;
 }
