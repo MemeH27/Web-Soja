@@ -43,7 +43,7 @@ export default function ProductModal({ onClose, product, onSave }) {
 
             if (!data?.publicUrl) throw new Error('No se pudo generar la URL pública')
 
-            setFormData({ ...formData, image: data.publicUrl })
+            setFormData(prev => ({ ...prev, image: data.publicUrl }))
         } catch (error) {
             console.error('Upload error:', error)
             alert('Error al procesar la imagen: ' + (error.message || 'Error desconocido'))
@@ -159,8 +159,17 @@ export default function ProductModal({ onClose, product, onSave }) {
                         </div>
 
                         <div className="pt-6">
-                            <button className="w-full bg-[#e5242c] text-white py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] hover:bg-[#c41e25] transition-all shadow-xl shadow-[#e5242c]/20 active:scale-95 flex items-center justify-center gap-3">
-                                {product ? <><FaEdit /> Guardar Cambios</> : <><FaPlus /> Crear Producto</>}
+                            <button
+                                disabled={uploading}
+                                className="w-full bg-[#e5242c] disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] hover:bg-[#c41e25] transition-all shadow-xl shadow-[#e5242c]/20 active:scale-95 flex items-center justify-center gap-3"
+                            >
+                                {uploading ? (
+                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                ) : product ? (
+                                    <><FaEdit /> Guardar Cambios</>
+                                ) : (
+                                    <><FaPlus /> Crear Producto</>
+                                )}
                             </button>
                         </div>
                     </div>

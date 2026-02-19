@@ -6,6 +6,7 @@ export default function OrdersList({ orders, loading, deliveryUsers, onUpdate, o
     const [openDropdownId, setOpenDropdownId] = useState(null)
     const [filterTab, setFilterTab] = useState('pending')
     const [timeFilter, setTimeFilter] = useState('all')
+    const [selectedOrder, setSelectedOrder] = useState(null)
 
     if (loading) return <div className="p-8 text-gray-400">Cargando pedidos...</div>
 
@@ -123,143 +124,212 @@ export default function OrdersList({ orders, loading, deliveryUsers, onUpdate, o
                     <p>No hay pedidos en esta categoría.</p>
                 </div>
             ) : (
-                <div className="grid gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filteredOrders.map(order => (
-                        <div key={order.id} className="bg-[#111] border border-white/5 p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] flex flex-col group hover:border-[#e5242c]/20 transition-all shadow-xl gap-6">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 md:w-14 md:h-14 bg-[#e5242c]/10 rounded-2xl flex items-center justify-center text-[#e5242c] shrink-0">
-                                        <FaClock size={20} className="md:size-6" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                            <h4 className="font-bold text-lg md:text-xl text-white">
-                                                {order.client_name || `Invitado #${order.id.slice(0, 4).toUpperCase()}`}
-                                            </h4>
-                                            <span className={`text-[10px] uppercase font-black px-3 py-1 rounded-full ${order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                                                order.status === 'delivered' ? 'bg-green-500/10 text-green-500' :
-                                                    order.status === 'cancelled' ? 'bg-red-500/10 text-red-400' :
-                                                        'bg-blue-500/10 text-blue-500'
-                                                }`}>
-                                                {order.status === 'pending' ? 'Pendiente' :
-                                                    order.status === 'cooking' ? 'Cocinando' :
-                                                        order.status === 'ready' || order.status === 'prepared' ? 'Preparado' :
-                                                            order.status === 'shipped' ? 'En Camino' :
-                                                                order.status === 'cancelled' ? 'Cancelado' : 'Entregado'}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-gray-500 text-xs text-left">
-                                            <span className="flex items-center gap-2 font-medium">
-                                                <FaUser size={10} className="text-[#e5242c]/50" /> {order.client_phone}
-                                            </span>
-                                            <span className="hidden sm:inline opacity-30">•</span>
-                                            <span className="opacity-60">{new Date(order.created_at).toLocaleString()}</span>
-                                            <span className="bg-white/5 text-[8px] text-gray-600 px-2 py-0.5 rounded uppercase font-black tracking-widest w-fit">#{order.id.slice(0, 8)}</span>
-                                        </div>
-                                        {order.status === 'cancelled' && order.cancel_reason && (
-                                            <div className="mt-3 bg-red-500/5 border border-red-500/10 p-3 rounded-xl flex items-center gap-3">
-                                                <span className="text-red-500 text-[10px] font-black uppercase tracking-widest shrink-0">Motivo:</span>
-                                                <p className="text-xs text-gray-400 font-medium italic">"{order.cancel_reason}"</p>
-                                            </div>
-                                        )}
-                                    </div>
+                        <div
+                            key={order.id}
+                            onClick={() => setSelectedOrder(order)}
+                            className="bg-[#111] border border-white/5 p-5 rounded-2xl flex flex-col gap-4 group hover:border-[#e5242c]/30 hover:bg-white/[0.02] transition-all cursor-pointer relative"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-[#e5242c]/10 flex items-center justify-center text-[#e5242c] shrink-0">
+                                    <FaClock size={16} />
                                 </div>
-
-                                <div className="flex justify-between md:flex-col items-center md:items-end gap-1 md:gap-0 border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
-                                    <div className="font-black text-2xl md:text-3xl text-white tracking-tight">L {Number(order.total).toFixed(2)}</div>
-                                    <p className="text-[9px] text-gray-500 uppercase tracking-widest mt-1 font-black">{order.delivery_type === 'delivery' ? '🚗 Domicilio' : '🥡 Para llevar'}</p>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-white text-sm truncate">
+                                        {order.client_name || `Invitado #${order.id.slice(0, 4).toUpperCase()}`}
+                                    </h4>
+                                    <p className="text-[10px] text-gray-500 truncate font-medium">L {Number(order.total).toFixed(2)}</p>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4 pt-4 border-t border-white/5">
-                                {order.status === 'pending' && (
-                                    <button
-                                        onClick={() => updateOrderStatus(order.id, 'cooking')}
-                                        className="flex-1 sm:flex-none h-12 bg-orange-500/10 hover:bg-orange-500 text-orange-500 hover:text-white rounded-2xl flex items-center justify-center gap-2 transition-all border border-orange-500/20 font-bold text-xs"
-                                    >
-                                        👨‍🍳 Cocinar
-                                    </button>
-                                )}
-                                {order.status === 'cooking' && (
-                                    <button
-                                        onClick={() => updateOrderStatus(order.id, 'ready')}
-                                        className="flex-1 sm:flex-none h-12 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white rounded-2xl flex items-center justify-center gap-2 transition-all border border-blue-500/20 font-bold text-xs"
-                                    >
-                                        ✅ Listo
-                                    </button>
-                                )}
-                                {order.status === 'shipped' && (
-                                    <button
-                                        onClick={() => onTrack(order)}
-                                        className="flex-1 sm:flex-none bg-[#e5242c]/10 text-[#e5242c] hover:bg-[#e5242c] hover:text-white h-12 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-[10px] border border-[#e5242c]/20"
-                                    >
-                                        <FaMapMarkerAlt size={14} /> Rastrear
-                                    </button>
-                                )}
-
-                                {order.delivery_type === 'delivery' && (order.status === 'ready' || order.status === 'pending' || order.status === 'cooking' || order.status === 'shipped') && (
-                                    <div className="relative flex-1 md:flex-none min-w-[200px]">
-                                        <button
-                                            onClick={() => setOpenDropdownId(openDropdownId === order.id ? null : order.id)}
-                                            className="w-full h-12 bg-white/5 border border-white/10 hover:border-[#e5242c]/40 rounded-2xl px-5 text-xs text-left text-white outline-none transition-all flex items-center justify-between font-bold"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <FaMotorcycle size={14} className="text-[#e5242c]" />
-                                                <span className="truncate max-w-[120px]">
-                                                    {order.delivery_id
-                                                        ? deliveryUsers.find(u => u.id === order.delivery_id)
-                                                            ? deliveryUsers.find(u => u.id === order.delivery_id).first_name
-                                                            : 'Asignado'
-                                                        : 'Asignar Repartidor'}
-                                                </span>
-                                            </div>
-                                            <FaChevronDown size={10} className={`text-gray-500 transition-transform ${openDropdownId === order.id ? 'rotate-180' : ''}`} />
-                                        </button>
-
-                                        {openDropdownId === order.id && (
-                                            <>
-                                                <div className="fixed inset-0 z-[60]" onClick={() => setOpenDropdownId(null)} />
-                                                <div className="absolute top-full mt-2 left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl shadow-2xl z-[70] animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
-                                                    <div
-                                                        onClick={() => { assignDelivery(order.id, null); setOpenDropdownId(null); }}
-                                                        className="px-5 py-3 text-[10px] font-black uppercase text-gray-500 hover:bg-white/5 cursor-pointer border-b border-white/5 transition-colors"
-                                                    >
-                                                        Sin Asignar
-                                                    </div>
-                                                    <div className="max-h-52 overflow-y-auto">
-                                                        {deliveryUsers.map(u => (
-                                                            <div
-                                                                key={u.id}
-                                                                onClick={() => {
-                                                                    assignDelivery(order.id, u.id)
-                                                                    setOpenDropdownId(null)
-                                                                }}
-                                                                className={`px-5 py-3 text-xs font-bold transition-all cursor-pointer flex items-center justify-between border-b border-white/5 last:border-0
-                                                                    ${order.delivery_id === u.id ? 'bg-[#e5242c] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}
-                                                                `}
-                                                            >
-                                                                <span>{u.first_name}</span>
-                                                                <span className="text-[10px] opacity-60 font-mono">{u.delivery_id_card}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-
-                                <button
-                                    onClick={() => deleteOrder(order.id)}
-                                    className="h-12 w-12 sm:ml-auto bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-red-500/20"
-                                    title="Eliminar Pedido"
-                                >
-                                    <FaPlus className="rotate-45" size={16} />
-                                </button>
+                            <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                                <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                                    order.status === 'delivered' ? 'bg-green-500/10 text-green-500' :
+                                        order.status === 'cancelled' ? 'bg-red-500/10 text-red-400' :
+                                            'bg-blue-500/10 text-blue-500'
+                                    }`}>
+                                    {order.status === 'pending' ? 'Pendiente' :
+                                        order.status === 'cooking' ? 'Cocinando' :
+                                            order.status === 'ready' || order.status === 'prepared' ? 'Preparado' :
+                                                order.status === 'shipped' ? 'En Camino' :
+                                                    order.status === 'cancelled' ? 'Cancelado' : 'Entregado'}
+                                </span>
+                                <div className="text-[8px] text-gray-600 font-bold">
+                                    {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
+            )}
+
+            {selectedOrder && (
+                <OrderDetailModal
+                    order={selectedOrder}
+                    deliveryUsers={deliveryUsers}
+                    onClose={() => setSelectedOrder(null)}
+                    onUpdateStatus={updateOrderStatus}
+                    onAssignDelivery={assignDelivery}
+                    onDelete={deleteOrder}
+                    onTrack={onTrack}
+                />
+            )}
+        </div>
+    )
+}
+
+function OrderDetailModal({ order, deliveryUsers, onClose, onUpdateStatus, onAssignDelivery, onDelete, onTrack }) {
+    const [openDropdown, setOpenDropdown] = useState(false)
+
+    return (
+        <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#111] border border-white/10 w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+                <div className="p-8 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <button
+                        onClick={onClose}
+                        className="absolute top-6 right-6 w-10 h-10 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-gray-400 transition-all z-10"
+                    >
+                        <FaPlus className="rotate-45" size={20} />
+                    </button>
+
+                    <div className="flex items-center gap-6 mb-8">
+                        <div className="w-16 h-16 rounded-3xl bg-[#e5242c]/10 flex items-center justify-center text-[#e5242c] text-2xl">
+                            <FaClock />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[#e5242c] text-[10px] font-black uppercase tracking-[0.2em] mb-1">Detalles del Pedido</p>
+                            <h2 className="text-2xl font-black text-white">{order.client_name || `Invitado #${order.id.slice(0, 4).toUpperCase()}`}</h2>
+                            <p className="text-gray-500 text-xs font-medium">#{order.id.slice(0, 12)} • {new Date(order.created_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                        <DetailBox icon={<FaUser />} label="Teléfono" value={order.client_phone} />
+                        <DetailBox icon={<FaMapMarkerAlt />} label="Tipo Entrega" value={order.delivery_type === 'delivery' ? '🚗 Domicilio' : '🥡 Para llevar'} />
+                        <DetailBox
+                            icon={<FaPlus />}
+                            label="Estado"
+                            value={order.status.toUpperCase()}
+                            isBadge
+                            badgeColor={
+                                order.status === 'pending' ? 'bg-yellow-500' :
+                                    order.status === 'delivered' ? 'bg-green-600' :
+                                        order.status === 'cancelled' ? 'bg-red-600' :
+                                            'bg-blue-600'
+                            }
+                        />
+                        <DetailBox icon={<FaPlus />} label="Total" value={`L ${Number(order.total).toFixed(2)}`} />
+                    </div>
+
+                    {order.cancel_reason && (
+                        <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-5 mb-8">
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className="text-red-500 text-[10px] font-black uppercase tracking-widest">Motivo de Cancelación</span>
+                            </div>
+                            <p className="text-sm text-gray-400 font-medium italic">"{order.cancel_reason}"</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-4 mb-8">
+                        <h5 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Productos</h5>
+                        <div className="bg-black/20 border border-white/5 rounded-2xl overflow-hidden">
+                            {order.items?.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-4 border-b border-white/5 last:border-0">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-xs font-black text-[#e5242c]">{item.quantity}x</div>
+                                        <span className="text-sm font-bold text-white">{item.name}</span>
+                                    </div>
+                                    <span className="text-sm font-black text-gray-400">L {Number(item.price * item.quantity).toFixed(0)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/5">
+                        {order.status === 'pending' && (
+                            <button
+                                onClick={() => { onUpdateStatus(order.id, 'cooking'); onClose(); }}
+                                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white h-14 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-[10px] shadow-lg shadow-orange-500/20"
+                            >
+                                👨‍🍳 Cocinar
+                            </button>
+                        )}
+                        {order.status === 'cooking' && (
+                            <button
+                                onClick={() => { onUpdateStatus(order.id, 'ready'); onClose(); }}
+                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-14 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-[10px] shadow-lg shadow-blue-500/20"
+                            >
+                                ✅ Listo
+                            </button>
+                        )}
+                        {order.status === 'shipped' && (
+                            <button
+                                onClick={() => { onTrack(order); onClose(); }}
+                                className="flex-1 bg-[#e5242c] text-white h-14 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-[10px]"
+                            >
+                                <FaMapMarkerAlt /> Rastrear
+                            </button>
+                        )}
+
+                        {order.delivery_type === 'delivery' && !['delivered', 'cancelled'].includes(order.status) && (
+                            <div className="relative flex-1">
+                                <button
+                                    onClick={() => setOpenDropdown(!openDropdown)}
+                                    className="w-full h-14 bg-white/5 border border-white/10 hover:border-[#e5242c]/40 rounded-2xl px-5 text-xs text-left text-white outline-none transition-all flex items-center justify-between font-bold"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <FaMotorcycle size={14} className="text-[#e5242c]" />
+                                        <span>Asignar Repartidor</span>
+                                    </div>
+                                    <FaChevronDown size={10} className={`text-gray-500 transition-transform ${openDropdown ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {openDropdown && (
+                                    <div className="absolute bottom-full mb-2 left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl shadow-2xl z-[70] animate-in fade-in slide-in-from-bottom-2 duration-200 overflow-hidden">
+                                        <div className="max-h-52 overflow-y-auto">
+                                            {deliveryUsers.map(u => (
+                                                <div
+                                                    key={u.id}
+                                                    onClick={() => { onAssignDelivery(order.id, u.id); setOpenDropdown(false); onClose(); }}
+                                                    className="px-5 py-4 text-xs font-bold text-gray-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer border-b border-white/5 last:border-0 flex items-center justify-between"
+                                                >
+                                                    <span>{u.first_name}</span>
+                                                    <span className="text-[10px] opacity-40 font-mono">{u.delivery_id_card}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <button
+                            onClick={() => { onDelete(order.id); onClose(); }}
+                            className="w-14 h-14 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-red-500/20 shrink-0"
+                        >
+                            <FaPlus className="rotate-45" size={20} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function DetailBox({ icon, label, value, isBadge, badgeColor }) {
+    return (
+        <div className="bg-black/40 border border-white/5 p-4 rounded-2xl">
+            <div className="flex items-center gap-2 mb-1 text-gray-500">
+                <span className="text-[10px]">{icon}</span>
+                <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+            </div>
+            {isBadge ? (
+                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black text-white mt-1 ${badgeColor}`}>
+                    {value}
+                </span>
+            ) : (
+                <p className="text-white font-bold text-sm truncate">{value}</p>
             )}
         </div>
     )
