@@ -418,23 +418,26 @@ export default function App() {
     setShowSuccessModal(true)
   }
 
-  async function handleCancelOrder() {
+  async function handleCancelOrder(reason) {
     if (!activeOrder) return
-    if (window.confirm('¿Estas seguro que deseas cancelar tu pedido?')) {
-      try {
-        const { error } = await supabase
-          .from('orders')
-          .update({ status: 'cancelled' })
-          .eq('id', activeOrder.id)
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          cancel_reason: reason
+        })
+        .eq('id', activeOrder.id)
 
-        if (error) throw error
+      if (error) throw error
 
-        setActiveOrder(null)
-        localStorage.removeItem('soja_active_order_id')
-        navigate('/')
-      } catch (err) {
-        alert('Error al cancelar el pedido: ' + err.message)
-      }
+      setActiveOrder(null)
+      localStorage.removeItem('soja_active_order_id')
+      toast.success('Pedido cancelado correctamente')
+      navigate('/')
+    } catch (err) {
+      toast.error('Error al cancelar el pedido')
+      console.error(err)
     }
   }
 

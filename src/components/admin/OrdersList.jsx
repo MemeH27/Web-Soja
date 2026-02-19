@@ -5,6 +5,7 @@ import { supabase } from '../../supabaseClient'
 export default function OrdersList({ orders, loading, deliveryUsers, onUpdate, onTrack }) {
     const [openDropdownId, setOpenDropdownId] = useState(null)
     const [filterTab, setFilterTab] = useState('pending')
+    const [timeFilter, setTimeFilter] = useState('all')
 
     if (loading) return <div className="p-8 text-gray-400">Cargando pedidos...</div>
 
@@ -40,38 +41,80 @@ export default function OrdersList({ orders, loading, deliveryUsers, onUpdate, o
     }
 
     const filteredOrders = orders.filter(order => {
-        if (filterTab === 'pending') return order.status === 'pending'
-        if (filterTab === 'in_progress') return ['cooking', 'ready', 'prepared', 'shipped'].includes(order.status)
-        if (filterTab === 'history') return ['delivered', 'cancelled'].includes(order.status)
+        // Tab filtering
+        let matchesTab = true
+        if (filterTab === 'pending') matchesTab = order.status === 'pending'
+        else if (filterTab === 'in_progress') matchesTab = ['cooking', 'ready', 'prepared', 'shipped'].includes(order.status)
+        else if (filterTab === 'history') matchesTab = ['delivered', 'cancelled'].includes(order.status)
+
+        if (!matchesTab) return false
+
+        // Time filtering
+        if (timeFilter === 'all') return true
+
+        const now = new Date()
+        const orderDate = new Date(order.created_at)
+
+        if (timeFilter === 'day') {
+            return orderDate.toDateString() === now.toDateString()
+        }
+        if (timeFilter === 'week') {
+            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            return orderDate >= lastWeek
+        }
+        if (timeFilter === 'month') {
+            const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+            return orderDate >= lastMonth
+        }
+
         return true
     })
 
     return (
         <div className="space-y-6">
-            <div className="flex p-1.5 bg-white/5 rounded-2xl w-fit mb-8 gap-2 border border-white/10">
-                {[
-                    { id: 'pending', label: 'Pendientes', icon: '🔔', count: orders.filter(o => o.status === 'pending').length },
-                    { id: 'in_progress', label: 'En Curso', icon: '🛵', count: orders.filter(o => ['cooking', 'ready', 'prepared', 'shipped'].includes(o.status)).length },
-                    { id: 'history', label: 'Historial', icon: '📋', count: orders.filter(o => ['delivered', 'cancelled'].includes(o.status)).length }
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setFilterTab(tab.id)}
-                        className={`
-                            flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all text-xs font-black uppercase tracking-widest
-                            ${filterTab === tab.id
-                                ? 'bg-[#e5242c] text-white shadow-lg shadow-[#e5242c]/20'
-                                : 'text-gray-500 hover:text-white hover:bg-white/5'}
-                        `}
-                    >
-                        <span>{tab.icon} {tab.label}</span>
-                        {tab.count > 0 && (
-                            <span className={`px-2 py-0.5 rounded-lg text-[10px] ${filterTab === tab.id ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'}`}>
-                                {tab.count}
-                            </span>
-                        )}
-                    </button>
-                ))}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-8">
+                <div className="flex p-1.5 bg-white/5 rounded-2xl w-fit gap-2 border border-white/10">
+                    {[
+                        { id: 'pending', label: 'Pendientes', icon: '🔔', count: orders.filter(o => o.status === 'pending').length },
+                        { id: 'in_progress', label: 'En Curso', icon: '🛵', count: orders.filter(o => ['cooking', 'ready', 'prepared', 'shipped'].includes(o.status)).length },
+                        { id: 'history', label: 'Historial', icon: '📋', count: orders.filter(o => ['delivered', 'cancelled'].includes(o.status)).length }
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setFilterTab(tab.id)}
+                            className={`
+                                flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all text-xs font-black uppercase tracking-widest
+                                ${filterTab === tab.id
+                                    ? 'bg-[#e5242c] text-white shadow-lg shadow-[#e5242c]/20'
+                                    : 'text-gray-500 hover:text-white hover:bg-white/5'}
+                            `}
+                        >
+                            <span>{tab.icon} {tab.label}</span>
+                            {tab.count > 0 && (
+                                <span className={`px-2 py-0.5 rounded-lg text-[10px] ${filterTab === tab.id ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'}`}>
+                                    {tab.count}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex p-1 bg-white/5 rounded-xl border border-white/10 gap-1 overflow-x-auto max-w-full">
+                    {[
+                        { id: 'all', label: 'Todo' },
+                        { id: 'day', label: 'Hoy' },
+                        { id: 'week', label: 'Semana' },
+                        { id: 'month', label: 'Mes' }
+                    ].map(tf => (
+                        <button
+                            key={tf.id}
+                            onClick={() => setTimeFilter(tf.id)}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${timeFilter === tf.id ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
+                        >
+                            {tf.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {filteredOrders.length === 0 ? (
@@ -113,6 +156,12 @@ export default function OrdersList({ orders, loading, deliveryUsers, onUpdate, o
                                             <span className="opacity-60">{new Date(order.created_at).toLocaleString()}</span>
                                             <span className="bg-white/5 text-[8px] text-gray-600 px-2 py-0.5 rounded uppercase font-black tracking-widest w-fit">#{order.id.slice(0, 8)}</span>
                                         </div>
+                                        {order.status === 'cancelled' && order.cancel_reason && (
+                                            <div className="mt-3 bg-red-500/5 border border-red-500/10 p-3 rounded-xl flex items-center gap-3">
+                                                <span className="text-red-500 text-[10px] font-black uppercase tracking-widest shrink-0">Motivo:</span>
+                                                <p className="text-xs text-gray-400 font-medium italic">"{order.cancel_reason}"</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

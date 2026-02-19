@@ -647,6 +647,7 @@ export default function Delivery({ setView }) {
             {selectedOrder && (
                 <OrderDetailsModal
                     order={selectedOrder}
+                    isHistory={activeTab === 'history'}
                     onClose={() => setSelectedOrder(null)}
                 />
             )}
@@ -654,7 +655,7 @@ export default function Delivery({ setView }) {
     )
 }
 
-function OrderDetailsModal({ order, onClose }) {
+function OrderDetailsModal({ order, isHistory, onClose }) {
     const items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || [])
 
     // Fallback for location and address
@@ -713,28 +714,30 @@ function OrderDetailsModal({ order, onClose }) {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3 mt-4">
-                                {(lat && lng) && (
-                                    <a
-                                        href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="w-full bg-[#1e1e1e] border-2 border-[#e5242c] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-[#e5242c] transition-all shadow-lg text-[10px] uppercase tracking-widest active:scale-95"
-                                    >
-                                        <FaMapMarkerAlt size={16} /> Abrir en Google Maps
-                                    </a>
-                                )}
-                                {order.client_phone && (
-                                    <a
-                                        href={`https://wa.me/504${order.client_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola ${order.client_name}! 🛵 Soy tu repartidor de SOJA, ya estoy en camino con tu pedido. ¡Llegaré en unos minutos!`)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="w-full bg-[#25D366]/10 border-2 border-[#25D366]/20 text-[#25D366] py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-[#25D366] hover:text-white transition-all shadow-lg text-[10px] uppercase tracking-widest active:scale-95"
-                                    >
-                                        <FaPhone size={14} /> Avisar por WhatsApp
-                                    </a>
-                                )}
-                            </div>
+                            {!isHistory && (
+                                <div className="flex flex-col gap-3 mt-4">
+                                    {(lat && lng) && (
+                                        <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full bg-[#1e1e1e] border-2 border-[#e5242c] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-[#e5242c] transition-all shadow-lg text-[10px] uppercase tracking-widest active:scale-95"
+                                        >
+                                            <FaMapMarkerAlt size={16} /> Abrir en Google Maps
+                                        </a>
+                                    )}
+                                    {order.client_phone && (
+                                        <a
+                                            href={`https://wa.me/504${order.client_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola ${order.client_name}! 🛵 Soy tu repartidor de SOJA, ya estoy en camino con tu pedido. ¡Llegaré en unos minutos!`)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full bg-[#25D366]/10 border-2 border-[#25D366]/20 text-[#25D366] py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-[#25D366] hover:text-white transition-all shadow-lg text-[10px] uppercase tracking-widest active:scale-95"
+                                        >
+                                            <FaPhone size={14} /> Avisar por WhatsApp
+                                        </a>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 

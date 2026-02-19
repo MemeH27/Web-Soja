@@ -145,22 +145,30 @@ export default function MyOrders({ onBack, setCart, setView }) {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid gap-6">
-                        {filteredOrders.map(order => (
-                            <div key={order.id} className="bg-[#111] border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row md:items-center justify-between group hover:border-[#e5242c]/20 transition-all shadow-xl gap-6">
-                                <div className="flex items-center gap-6 flex-1">
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform ${order.status === 'delivered' ? 'bg-green-500/10 text-green-500' :
-                                        order.status === 'cancelled' ? 'bg-red-500/10 text-red-500' :
-                                            'bg-blue-500/10 text-blue-500'
-                                        }`}>
-                                        {order.status === 'delivered' ? <FaCheckCircle size={24} /> :
-                                            order.status === 'cancelled' ? <FaTimesCircle size={24} /> :
-                                                <FaClock size={24} />}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredOrders.map(order => {
+                            const items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || [])
+                            return (
+                                <div key={order.id} className="bg-[#111] border border-white/5 p-6 rounded-[2.5rem] flex flex-col group hover:border-[#e5242c]/20 transition-all shadow-xl gap-5">
+                                    <div className="flex items-start justify-between">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform ${order.status === 'delivered' ? 'bg-green-500/10 text-green-500' :
+                                            order.status === 'cancelled' ? 'bg-red-500/10 text-red-500' :
+                                                'bg-blue-500/10 text-blue-500'
+                                            }`}>
+                                            {order.status === 'delivered' ? <FaCheckCircle size={20} /> :
+                                                order.status === 'cancelled' ? <FaTimesCircle size={20} /> :
+                                                    <FaClock size={20} />}
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Total</p>
+                                            <p className="text-lg font-black text-white tracking-tight leading-none">L {Number(order.total).toFixed(2)}</p>
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-1">
-                                            <p className="text-xs font-black text-gray-500 uppercase tracking-[0.15rem]">PEDIDO #{order.id.slice(0, 8).toUpperCase()}</p>
-                                            <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded ${order.status === 'delivered' ? 'bg-green-500/20 text-green-400' :
+
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <p className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">#{order.id.slice(0, 8).toUpperCase()}</p>
+                                            <span className={`text-[8px] uppercase font-black px-2 py-0.5 rounded ${order.status === 'delivered' ? 'bg-green-500/20 text-green-400' :
                                                 order.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
                                                     'bg-blue-500/20 text-blue-400'
                                                 }`}>
@@ -168,38 +176,27 @@ export default function MyOrders({ onBack, setCart, setView }) {
                                                     order.status === 'cancelled' ? 'Cancelado' : 'En Proceso'}
                                             </span>
                                         </div>
-                                        <p className="text-white font-bold flex items-center gap-3">
-                                            {(typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || [])).length} productos
-                                            <span className="text-gray-700">•</span>
-                                            <span className="text-gray-400 text-sm font-normal">{new Date(order.created_at).toLocaleDateString('es-HN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                                        </p>
+                                        <p className="text-white font-bold text-sm mb-1">{items.length} productos</p>
+                                        <p className="text-gray-500 text-xs">{new Date(order.created_at).toLocaleDateString('es-HN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                                     </div>
-                                </div>
 
-                                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                                    <div className="text-right hidden sm:block">
-                                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Total</p>
-                                        <p className="text-xl font-black text-white tracking-tight">L {Number(order.total).toFixed(2)}</p>
-                                    </div>
-                                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    <div className="mt-auto pt-4 border-t border-white/5 grid grid-cols-1 gap-2">
                                         <button
                                             onClick={() => setConfirmingReorder(order)}
-                                            className="flex-1 sm:flex-none h-12 bg-green-500 hover:bg-green-600 text-white px-6 rounded-2xl flex items-center justify-center gap-2 transition-all font-bold active:scale-95 shadow-lg shadow-green-900/20"
+                                            className="w-full h-11 bg-green-500 hover:bg-green-600 text-white rounded-xl flex items-center justify-center gap-2 transition-all font-bold active:scale-95 shadow-lg shadow-green-900/10 text-xs"
                                         >
-                                            <FaRedo size={14} />
-                                            <span className="text-sm">Pedir de nuevo</span>
+                                            <FaRedo size={12} /> Pedir de nuevo
                                         </button>
                                         <button
                                             onClick={() => setViewingOrder(order)}
-                                            className="w-12 h-12 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-2xl flex items-center justify-center transition-all border border-white/5 active:scale-95"
-                                            title="Ver Detalles"
+                                            className="w-full h-11 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl flex items-center justify-center transition-all border border-white/5 active:scale-95 text-xs font-bold"
                                         >
-                                            <FaBox size={18} />
+                                            Ver Detalles
                                         </button>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 )}
             </div>
@@ -213,7 +210,7 @@ export default function MyOrders({ onBack, setCart, setView }) {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => { setViewingOrder(null); setConfirmingReorder(null); }}
-                            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                            className="absolute inset-0 bg-black/90 backdrop-blur-sm"
                         />
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -334,7 +331,7 @@ export default function MyOrders({ onBack, setCart, setView }) {
                                 </div>
                                 <div className="grid grid-cols-1 w-full gap-3">
                                     <button
-                                        onClick={() => { setView('cart'); setShowReorderSuccess(false); }}
+                                        onClick={() => { setView('order'); setShowReorderSuccess(false); }}
                                         className="bg-white text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-gray-200 transition-all active:scale-95"
                                     >
                                         <FaShoppingCart size={14} /> Ir al Carrito <FaArrowRight />

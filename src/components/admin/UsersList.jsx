@@ -1,17 +1,35 @@
 import { useState } from 'react'
-import { FaUser, FaClock, FaEnvelope, FaPhone, FaShieldHalved, FaXmark, FaMotorcycle } from 'react-icons/fa6'
+import { FaUser, FaClock, FaEnvelope, FaPhone, FaShieldHalved, FaXmark, FaMotorcycle, FaSearch } from 'react-icons/fa6'
 import { supabase } from '../../supabaseClient'
 
 export default function UsersList({ users, loading, onUpdate }) {
     const [selectedUser, setSelectedUser] = useState(null)
+    const [searchTerm, setSearchTerm] = useState('')
 
     if (loading) return <div className="p-8 text-gray-400">Cargando usuarios...</div>
     if (users.length === 0) return <div className="text-gray-500 italic p-8 bg-[#111] rounded-2xl border border-white/5">No hay usuarios registrados en el sistema.</div>
 
+    const filteredUsers = users.filter(user => {
+        const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase()
+        const search = searchTerm.toLowerCase()
+        return fullName.includes(search) || (user.phone && user.phone.includes(searchTerm)) || (user.email && user.email.toLowerCase().includes(search))
+    })
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
+            <div className="relative">
+                <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input
+                    type="text"
+                    placeholder="Buscar usuario por nombre, teléfono o email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full max-w-md bg-[#111] border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm text-white focus:border-[#e5242c]/50 transition-all outline-none"
+                />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {users.map(user => {
+                {filteredUsers.map(user => {
                     const isAdmin = user.role === 'admin'
                     const isDelivery = user.role === 'delivery'
 

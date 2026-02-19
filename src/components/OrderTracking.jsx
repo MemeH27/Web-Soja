@@ -4,6 +4,7 @@ import { FaCheck, FaFireBurner, FaMotorcycle, FaHouse, FaChevronDown, FaChevronU
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../supabaseClient'
+import { motion, AnimatePresence } from 'framer-motion'
 
 // SOJA Location - Entre 2 y 3 calle NE en av. 4 NE, Santa Rosa de Copán
 const RESTAURANT_POS = [14.76816879623832, -88.77541047130629]
@@ -74,6 +75,24 @@ export default function OrderTracking({ order, onBack, onCancel, isAdmin = false
     const [routeCoords, setRouteCoords] = useState([])
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [deliveryStaff, setDeliveryStaff] = useState(null)
+    const [showCancelModal, setShowCancelModal] = useState(false)
+    const [cancelReason, setCancelReason] = useState('')
+    const [customReason, setCustomReason] = useState('')
+
+    const cancellationOptions = [
+        'Error en el pedido',
+        'Demasiado tiempo de espera',
+        'Encontré otra opción',
+        'Cambio de planes',
+        'Otro'
+    ]
+
+    const handleConfirmCancel = () => {
+        const finalReason = cancelReason === 'Otro' ? customReason : cancelReason
+        if (!finalReason) return
+        onCancel(finalReason)
+        setShowCancelModal(false)
+    }
 
     const destination = order.location ? [order.location.lat, order.location.lng] : [14.780, -88.785]
     const steps = ['Confirmado', 'En Cocina', 'Preparado', 'En camino', 'Entregado']
@@ -154,6 +173,59 @@ export default function OrderTracking({ order, onBack, onCancel, isAdmin = false
 
     return (
         <div className="fixed inset-0 z-50 bg-[#0f0f0f] flex flex-col md:flex-row font-sans h-[100dvh]">
+            <AnimatePresence>
+                {showCancelModal && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-md bg-[#111] border border-white/10 rounded-[2.5rem] p-8 shadow-2xl"
+                        >
+                            <h3 className="text-2xl font-black text-white mb-2 tracking-tight">¿Por qué deseas cancelar?</h3>
+                            <p className="text-gray-500 text-sm mb-6">Ayúdanos a mejorar contándonos el motivo.</p>
+
+                            <div className="space-y-2 mb-8 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                                {cancellationOptions.map(option => (
+                                    <button
+                                        key={option}
+                                        onClick={() => setCancelReason(option)}
+                                        className={`w-full p-4 rounded-2xl border transition-all text-left text-sm font-bold flex items-center justify-between ${cancelReason === option ? 'bg-[#e5242c]/10 border-[#e5242c] text-white' : 'bg-white/5 border-white/5 text-gray-400 hover:border-white/10'}`}
+                                    >
+                                        {option}
+                                        {cancelReason === option && <FaCheck size={12} className="text-[#e5242c]" />}
+                                    </button>
+                                ))}
+
+                                {cancelReason === 'Otro' && (
+                                    <textarea
+                                        value={customReason}
+                                        onChange={(e) => setCustomReason(e.target.value)}
+                                        placeholder="Escribe tu motivo aquí..."
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white text-sm outline-none focus:border-[#e5242c] transition-all min-h-[100px] mt-2"
+                                    />
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => setShowCancelModal(false)}
+                                    className="bg-white/5 hover:bg-white/10 text-gray-400 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all"
+                                >
+                                    Volver
+                                </button>
+                                <button
+                                    disabled={!cancelReason || (cancelReason === 'Otro' && !customReason)}
+                                    onClick={handleConfirmCancel}
+                                    className="bg-[#e5242c] hover:bg-[#c41e25] disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-[#e5242c]/20 transition-all active:scale-95"
+                                >
+                                    Confirmar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Map Area */}
             <div className="relative w-full h-[55%] md:h-full md:flex-grow order-1 md:order-2">
@@ -262,7 +334,7 @@ export default function OrderTracking({ order, onBack, onCancel, isAdmin = false
                     {statusStep < 3 && !isAdmin && (
                         <div className="mt-8 pt-6 border-t border-white/5">
                             <button
-                                onClick={onCancel}
+                                onClick={() => setShowCancelModal(true)}
                                 className="w-full flex items-center justify-center gap-3 text-red-500/50 hover:text-red-500 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/30 py-4 rounded-2xl transition-all duration-300 font-black text-[10px] uppercase tracking-[0.2rem] group"
                             >
                                 <FaBan className="group-hover:rotate-12 transition-transform" />
