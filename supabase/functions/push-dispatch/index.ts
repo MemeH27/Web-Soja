@@ -1,291 +1,227 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import webpush from 'npm:web-push@3.6.7'
-
-type OrderRow = {
-  id: string
-  user_id: string | null
-  client_name?: string | null
-  total?: number | null
-  status?: string | null
-  delivery_id?: string | null
-}
-
-type DbWebhookPayload = {
-  type?: string
-  table?: string
-  schema?: string
-  record?: OrderRow
-  old_record?: OrderRow | null
-  new?: OrderRow
-  old?: OrderRow | null
-}
-
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-const PUSH_WEBHOOK_SECRET = Deno.env.get('PUSH_WEBHOOK_SECRET') || ''
-
-const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || ''
-const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || ''
-const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:admin@example.com'
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+import webpush from 'npm:web-push'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-push-webhook-secret',
 }
 
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json',
-    },
-  })
-}
+// Environment variables
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || ''
+const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || ''
+const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:example@example.com'
+const PUSH_WEBHOOK_SECRET = Deno.env.get('PUSH_WEBHOOK_SECRET') || ''
 
-function getEventData(payload: DbWebhookPayload) {
-  const eventType = String(payload.type || '').toUpperCase()
-  const record = payload.record || payload.new || null
-  const oldRecord = payload.old_record || payload.old || null
-  return { eventType, record, oldRecord }
-}
+// Supabase details
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
-function statusLabel(status: string | null | undefined) {
-  switch (status) {
-    case 'pending': return 'confirmado'
-    case 'cooking': return 'cocinándose'
-    case 'ready': return 'listo para entrega'
-    case 'shipped': return 'en camino'
-    case 'delivered': return 'entregado'
-    case 'cancelled': return 'cancelado'
-    default: return 'actualizado'
+// Only set VAPID details if keys are available
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+    console.log('✅ VAPID details configured successfully')
+  } catch (e) {
+    console.error('❌ VAPID setup error:', e)
   }
-}
-
-async function buildNotifications(
-  eventType: string,
-  record: OrderRow | null,
-  oldRecord: OrderRow | null
-) {
-  const jobs: Array<{
-    target: 'admins' | 'user' | 'delivery'
-    userIds: string[]
-    title: string
-    body: string
-    url: string
-    tag: string
-  }> = []
-
-  if (!record) return jobs
-
-  const orderCode = record.id?.slice(0, 8).toUpperCase()
-
-  if (eventType === 'INSERT') {
-    jobs.push({
-      target: 'admins',
-      userIds: [],
-      title: 'Nuevo pedido',
-      body: `${record.client_name || 'Cliente'} realizó un pedido (#${orderCode}).`,
-      url: '/adminpanel',
-      tag: `order-insert-${record.id}`,
-    })
-  }
-
-  if (eventType === 'UPDATE') {
-    // Si se asigna un repartidor
-    if (record.delivery_id && oldRecord?.delivery_id !== record.delivery_id) {
-      jobs.push({
-        target: 'delivery',
-        userIds: [record.delivery_id],
-        title: 'Pedido asignado',
-        body: `Se te asignó el pedido #${orderCode}.`,
-        url: '/deliverypanel',
-        tag: `delivery-assigned-${record.id}`,
-      })
-    }
-
-    // Si cambia el estado
-    if (record.user_id && oldRecord?.status !== record.status) {
-      let body = `Tu pedido #${orderCode} está ${statusLabel(record.status)}.`
-
-      if (record.status === 'delivered') {
-        body = `¡Tu pedido #${orderCode} ha sido entregado! Gracias por confiar en nosotros. ¡Buen provecho y gracias por comprar con SOJA! 🥢🍣`
-      } else if (record.status === 'ready') {
-        body = `¡Buenas noticias! Tu pedido #${orderCode} ya está listo y empaquetado. ✨`
-      } else if (record.status === 'cooking') {
-        body = `¡Manos a la obra! Tu pedido #${orderCode} ya se entró a cocina. 👨‍🍳🔥`
-      } else if (record.status === 'shipped') {
-        let deliveryName = 'El repartidor'
-        if (record.delivery_id) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name')
-            .eq('id', record.delivery_id)
-            .single()
-          if (profile?.first_name) {
-            deliveryName = profile.first_name
-          }
-        }
-        body = `¡${deliveryName} va en camino con tu pedido #${orderCode}! Prepárate para recibirlo. 🛵`
-      }
-
-      jobs.push({
-        target: 'user',
-        userIds: [record.user_id],
-        title: 'Actualización de tu pedido',
-        body,
-        url: '/tracking',
-        tag: `order-status-${record.id}-${record.status}`,
-      })
-    }
-
-    // Si se cancela el pedido
-    if (record.status === 'cancelled' && oldRecord?.status !== 'cancelled') {
-      // Notificar a admins
-      jobs.push({
-        target: 'admins',
-        userIds: [],
-        title: 'Pedido Cancelado ❌',
-        body: `El pedido #${orderCode} ha sido cancelado por el cliente.`,
-        url: '/adminpanel',
-        tag: `order-cancelled-admin-${record.id}`,
-      })
-
-      // Notificar a repartidor si existe
-      if (record.delivery_id) {
-        jobs.push({
-          target: 'delivery',
-          userIds: [record.delivery_id],
-          title: 'Pedido Cancelado ❌',
-          body: `El pedido #${orderCode} que tenías asignado ha sido cancelado.`,
-          url: '/deliverypanel',
-          tag: `order-cancelled-delivery-${record.id}`,
-        })
-      }
-    }
-  }
-
-  return jobs
-}
-
-async function getAdminIds() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'admin')
-
-  if (error) throw error
-  return (data || []).map((row: { id: string }) => row.id)
+} else {
+  console.warn('⚠️ VAPID keys missing in secrets')
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-push-webhook-secret' } })
-  }
-
-  if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405)
-  }
-
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return jsonResponse({ error: 'Missing Supabase env vars' }, 500)
-  }
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-    return jsonResponse({ error: 'Missing VAPID env vars' }, 500)
-  }
-
-  let payload: DbWebhookPayload
-  try {
-    payload = await req.json()
-  } catch {
-    return jsonResponse({ error: 'Invalid JSON payload' }, 400)
-  }
-
-  const { eventType, record, oldRecord } = getEventData(payload)
-  if (!record || !record.id) {
-    return jsonResponse({ ok: true, skipped: 'No order record in payload' })
-  }
-
-  const jobs = await buildNotifications(eventType, record, oldRecord)
-  if (jobs.length === 0) {
-    return jsonResponse({ ok: true, skipped: 'No push jobs for this event' })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const allTargets: string[] = []
-    for (const job of jobs) {
-      if (job.target === 'admins') {
-        const adminIds = await getAdminIds()
-        allTargets.push(...adminIds)
-      } else {
-        allTargets.push(...job.userIds)
+    // 1. Validate Webhook Secret
+    const incomingSecret = req.headers.get('x-push-webhook-secret')
+    if (!PUSH_WEBHOOK_SECRET || incomingSecret !== PUSH_WEBHOOK_SECRET) {
+      console.error('Forbidden: Invalid Webhook Secret')
+      return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    const payload = await req.json()
+    console.log('--- push-dispatch Received Payload ---')
+    console.log(`Type: ${payload.type} | Table: ${payload.table}`)
+
+    if (payload.table !== 'orders') {
+      return new Response(JSON.stringify({ ok: true, message: 'Ignored non-orders table' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    const order = payload.record
+    const oldOrder = payload.old_record
+    const status = order.status
+    const oldStatus = oldOrder?.status
+
+    // Build independent notification jobs to avoid overwriting between flows
+    // Each job has its own title, body, tag and list of target user IDs
+    const jobs: Array<{ title: string; body: string; tag: string; userIds: string[] }> = []
+    const baseTag = `order-${order.id}`
+
+    // Flow 1: New order -> Admin
+    if (payload.type === 'INSERT' && status === 'pending') {
+      jobs.push({
+        title: '🔔 Nuevo Pedido!',
+        body: `Nuevo pedido de ${order.client_name || 'Cliente'} por L ${order.total}`,
+        tag: `${baseTag}-admin`,
+        userIds: [], // admins fetched below
+      })
+    }
+
+    // Flow 2: Status change -> Client
+    if (payload.type === 'UPDATE' && status !== oldStatus) {
+      let clientTitle = ''
+      let clientBody = ''
+
+      if (status === 'cooking') {
+        clientTitle = '👨‍🍳 Tu pedido se está cocinando'
+        clientBody = 'Estamos preparando tu SOJA con mucho amor.'
+      } else if (status === 'ready' || status === 'prepared') {
+        clientTitle = '✅ Pedido Listo!'
+        clientBody = 'Tu pedido está listo para ser recogido o enviado.'
+      } else if (status === 'shipped') {
+        clientTitle = '🛵 Pedido en camino!'
+        clientBody = 'Tu pedido SOJA ya va hacia tu ubicación.'
+      } else if (status === 'delivered') {
+        clientTitle = '🥡 Pedido Entregado'
+        clientBody = '¡Gracias por tu compra! Que disfrutes tu SOJA.'
+      } else if (status === 'cancelled') {
+        clientTitle = '❌ Pedido Cancelado'
+        clientBody = 'Tu pedido ha sido cancelado.'
+      }
+
+      if (clientBody && order.user_id) {
+        jobs.push({
+          title: clientTitle,
+          body: clientBody,
+          tag: `${baseTag}-client`,
+          userIds: [order.user_id],
+        })
       }
     }
 
-    const uniqueUserIds = [...new Set(allTargets.filter(Boolean))]
-    if (uniqueUserIds.length === 0) {
-      return jsonResponse({ ok: true, skipped: 'No users to notify' })
+    // Flow 3: Assignment -> Delivery person
+    // Separate job so it doesn't overwrite the client notification
+    if (payload.type === 'UPDATE' && order.delivery_id && order.delivery_id !== oldOrder?.delivery_id) {
+      jobs.push({
+        title: '🛵 Nuevo Pedido Asignado',
+        body: `Tienes un nuevo pedido para entregar a ${order.client_name || 'Cliente'}`,
+        tag: `${baseTag}-delivery`,
+        userIds: [order.delivery_id],
+      })
     }
 
-    const { data: subscriptions, error: subscriptionsError } = await supabase
+    // Flow 4: Order cancelled by client -> Delivery person (if already assigned)
+    if (
+      payload.type === 'UPDATE' &&
+      status === 'cancelled' &&
+      status !== oldStatus &&
+      order.delivery_id
+    ) {
+      jobs.push({
+        title: '❌ Pedido Cancelado',
+        body: `El cliente canceló el pedido de ${order.client_name || 'Cliente'}`,
+        tag: `${baseTag}-delivery-cancel`,
+        userIds: [order.delivery_id],
+      })
+    }
+
+    if (jobs.length === 0) {
+      return new Response(JSON.stringify({ ok: true, message: 'No notification needed for this update' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    // Initialize Supabase Admin for DB lookups
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    // If it's a new order, fetch all admins and add them to the admin job
+    if (payload.type === 'INSERT' && status === 'pending') {
+      const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin')
+      const adminJob = jobs.find(j => j.tag.endsWith('-admin'))
+      if (adminJob && admins) {
+        admins.forEach((a: { id: string }) => adminJob.userIds.push(a.id))
+      }
+    }
+
+    // Remove jobs with no target users
+    const activeJobs = jobs.filter(j => j.userIds.length > 0)
+    if (activeJobs.length === 0) {
+      return new Response(JSON.stringify({ ok: true, message: 'No target users found' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    // Collect all unique user IDs across all jobs
+    const allUserIds = [...new Set(activeJobs.flatMap(j => j.userIds))]
+
+    // Fetch subscriptions for all target users in one query
+    const { data: allSubscriptions } = await supabase
       .from('push_subscriptions')
-      .select('id,user_id,endpoint,p256dh,auth,enabled')
-      .in('user_id', uniqueUserIds)
+      .select('*')
+      .in('user_id', allUserIds)
       .eq('enabled', true)
 
-    if (subscriptionsError) throw subscriptionsError
+    if (!allSubscriptions || allSubscriptions.length === 0) {
+      console.log(`No active subscriptions found for users: ${allUserIds.join(', ')}`)
+      return new Response(JSON.stringify({ ok: true, message: 'No subscriptions found' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
-    const invalidIds: string[] = []
-    let sent = 0
+    console.log(`Processing ${activeJobs.length} notification job(s) for ${allUserIds.length} users...`)
 
-    for (const job of jobs) {
-      const userIdsForJob = job.target === 'admins'
-        ? await getAdminIds()
-        : job.userIds
+    let totalSent = 0
 
-      const subs = (subscriptions || []).filter((s: any) => userIdsForJob.includes(s.user_id))
+    // Process each job independently
+    for (const job of activeJobs) {
+      const jobSubscriptions = allSubscriptions.filter((sub: { user_id: string }) => job.userIds.includes(sub.user_id))
+      if (jobSubscriptions.length === 0) continue
 
-      for (const sub of subs) {
-        const pushSub = {
-          endpoint: sub.endpoint,
-          keys: { p256dh: sub.p256dh, auth: sub.auth },
-        }
-
-        const message = {
-          title: job.title,
-          body: job.body,
-          url: job.url,
-          tag: job.tag,
-        }
-
-        try {
-          await webpush.sendNotification(pushSub as any, JSON.stringify(message), { TTL: 60 })
-          sent += 1
-        } catch (err: any) {
-          const statusCode = err?.statusCode || err?.status || 0
-          const body = err?.body || ''
-          console.error(`Push send error ${statusCode}: ${err?.message || err}. Body: ${body}`)
-
-          if (statusCode === 404 || statusCode === 410) {
-            invalidIds.push(sub.id)
+      const results = await Promise.allSettled(
+        jobSubscriptions.map(async (sub: { id: string; user_id: string; endpoint: string; p256dh: string; auth: string }) => {
+          const pushConfig = {
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.p256dh,
+              auth: sub.auth,
+            },
           }
-        }
-      }
+
+          const notificationPayload = JSON.stringify({
+            title: job.title,
+            body: job.body,
+            icon: '/img/logo/logo_rojo.png',
+            badge: '/img/logo/logo_rojo.png',
+            data: {
+              orderId: order.id,
+              url: `/order/${order.id}`,
+            },
+            tag: job.tag,
+            renotify: true
+          })
+
+          try {
+            await webpush.sendNotification(pushConfig, notificationPayload)
+            totalSent++
+            return { success: true, userId: sub.user_id }
+          } catch (err: any) {
+            // If subscription is expired/invalid, disable it in DB
+            if (err.statusCode === 410 || err.statusCode === 404) {
+              await supabase.from('push_subscriptions').update({ enabled: false }).eq('id', sub.id)
+              console.log(`Disabled invalid subscription for user ${sub.user_id}`)
+            }
+            throw err
+          }
+        })
+      )
+
+      console.log(`Job [${job.tag}] results:`, JSON.stringify(results.map(r => r.status)))
     }
 
-    if (invalidIds.length > 0) {
-      await supabase
-        .from('push_subscriptions')
-        .update({ enabled: false, updated_at: new Date().toISOString() })
-        .in('id', invalidIds)
-    }
-
-    return jsonResponse({ ok: true, sent, disabled_invalid: invalidIds.length })
-  } catch (err: any) {
-    return jsonResponse({ error: err?.message || 'Unexpected error' }, 500)
+    return new Response(JSON.stringify({ ok: true, sentCount: totalSent, jobCount: activeJobs.length }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  } catch (error: any) {
+    console.error('Push Dispatch Error:', error.message)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 })

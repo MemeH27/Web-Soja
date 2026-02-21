@@ -57,13 +57,12 @@ function NewDeliveryCodeModal({ code, onClose }) {
 }
 
 export default function Delivery({ setView }) {
-    const { profile, signOut, user, loading: authLoading, signInWithCode, registerStaff } = useAuth()
+    const { profile, signOut, user, loading: authLoading, signInWithCode } = useAuth()
     const [orders, setOrders] = useState([])
     const [isOrdersLoading, setIsOrdersLoading] = useState(false)
     const [isLoggingIn, setIsLoggingIn] = useState(false)
     const [deliveryView, setDeliveryView] = useState('login')
     const [accessCode, setAccessCode] = useState('')
-    const [newStaffData, setNewStaffData] = useState({ firstName: '', lastName: '', phone: '' })
     const [generatedCode, setGeneratedCode] = useState('')
     const [selectedOrder, setSelectedOrder] = useState(null)
     const [isRefreshing, setIsRefreshing] = useState(false)
@@ -72,6 +71,12 @@ export default function Delivery({ setView }) {
     const [showNewDeliveryModal, setShowNewDeliveryModal] = useState(false)
     const [showCode, setShowCode] = useState(false)
     const [activeTab, setActiveTab] = useState('orders') // 'orders' or 'history'
+    const [loginMessage, setLoginMessage] = useState('')
+
+    const MAX_LOGIN_ATTEMPTS = 5
+    const LOCK_DURATION_MS = 15 * 60 * 1000
+    const ATTEMPTS_KEY = 'soja_delivery_login_attempts'
+    const LOCK_KEY = 'soja_delivery_login_lock_until'
 
     const playDeliveryToastSound = useCallback(() => {
         try {
@@ -113,37 +118,10 @@ export default function Delivery({ setView }) {
         return () => clearTimeout(timer)
     }, [isLoggingIn])
 
-    useEffect(() => {
-        if (user && profile) {
-            fetchAssignedOrders()
-            // Suscribirse a cambios en tiempo real
-            const subscription = supabase
-                .channel('delivery_orders')
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'orders',
-                    filter: `delivery_id=eq.${user.id}`
-                }, (payload) => {
-                    if (payload.eventType === 'INSERT') {
-                        setDeliveryToastOrder(payload.new)
-                        playDeliveryToastSound()
-                    }
-                    if (payload.eventType === 'UPDATE' && payload.old?.delivery_id !== payload.new?.delivery_id) {
-                        setDeliveryToastOrder(payload.new)
-                        playDeliveryToastSound()
-                    }
-                    fetchAssignedOrders()
-                })
-                .subscribe()
-
-            return () => {
-                supabase.removeChannel(subscription)
-            }
-        }
-    }, [user, profile, playDeliveryToastSound, activeTab])
-
-    const fetchAssignedOrders = async () => {
+    // useCallback para que el realtime subscription siempre use la versión
+    // actualizada con el activeTab correcto (evita stale closure).
+    // Debe declararse ANTES de los useEffect que lo usan como dependencia.
+    const fetchAssignedOrders = useCallback(async () => {
         if (!user) return
         setIsOrdersLoading(true)
         setIsRefreshing(true)
@@ -160,12 +138,60 @@ export default function Delivery({ setView }) {
             query = query.eq('status', 'delivered')
         }
 
-        const { data, error } = await query
+        const { data } = await query
 
         if (data) setOrders(data)
         setIsOrdersLoading(false)
         setTimeout(() => setIsRefreshing(false), 500)
-    }
+    }, [user, activeTab])
+
+    // Refrescar pedidos cuando cambia el tab activo o cuando el usuario se loguea
+    useEffect(() => {
+        if (user && profile) {
+            fetchAssignedOrders()
+        }
+    }, [activeTab, user, profile, fetchAssignedOrders])
+
+    // Suscripción realtime para detectar asignación de pedidos y cambios de estado
+    useEffect(() => {
+        if (!user || !profile) return
+
+        // Usamos un nombre de canal único por usuario para evitar conflictos
+        // entre múltiples repartidores conectados simultáneamente.
+        // Escuchamos TODOS los updates de orders y filtramos en el callback
+        // porque Supabase Realtime con filter=delivery_id puede no capturar
+        // el momento exacto en que delivery_id cambia de NULL a nuestro ID.
+        const channelName = `delivery_orders_${user.id}`
+        const subscription = supabase
+            .channel(channelName)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'orders',
+            }, (payload) => {
+                const newOrder = payload.new
+                const oldOrder = payload.old
+
+                // Detectar cuando se nos asigna un pedido (delivery_id cambia a nuestro ID)
+                const justAssignedToUs = newOrder?.delivery_id === user.id && oldOrder?.delivery_id !== user.id
+                // Detectar actualizaciones de pedidos que ya son nuestros
+                const isOurOrder = newOrder?.delivery_id === user.id
+
+                if (justAssignedToUs) {
+                    setDeliveryToastOrder(newOrder)
+                    playDeliveryToastSound()
+                }
+
+                if (isOurOrder) {
+                    fetchAssignedOrders()
+                }
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(subscription)
+        }
+    }, [user, profile, playDeliveryToastSound, fetchAssignedOrders])
 
     const updateStatus = async (orderId, newStatus) => {
         const oldOrder = orders.find(o => o.id === orderId) || null
@@ -230,44 +256,37 @@ export default function Delivery({ setView }) {
         if (e) e.preventDefault()
         if (isLoggingIn || accessCode.length < 4) return
 
-        console.log('🔑 Intentando login con:', accessCode)
+        const lockUntil = Number(localStorage.getItem(LOCK_KEY) || 0)
+        if (lockUntil > Date.now()) {
+            const mins = Math.ceil((lockUntil - Date.now()) / 60000)
+            setLoginMessage(`Acceso temporalmente bloqueado. Intenta de nuevo en ${mins} min.`)
+            return
+        }
+
+        setLoginMessage('')
         setIsLoggingIn(true)
         try {
             const { error } = await signInWithCode(accessCode)
             if (error) {
-                console.error('❌ Login error result:', error)
-                throw new Error(error.message || 'Código no válido o trabajador no encontrado')
+                throw new Error(error.message || 'Codigo no valido o trabajador no encontrado')
             }
-            console.log('✅ Login exitoso, esperando redirección...')
+            localStorage.removeItem(ATTEMPTS_KEY)
+            localStorage.removeItem(LOCK_KEY)
         } catch (err) {
-            console.error('❌ Catch login error:', err.message)
+            const attempts = Number(localStorage.getItem(ATTEMPTS_KEY) || 0) + 1
+            localStorage.setItem(ATTEMPTS_KEY, String(attempts))
+            if (attempts >= MAX_LOGIN_ATTEMPTS) {
+                const nextLockUntil = Date.now() + LOCK_DURATION_MS
+                localStorage.setItem(LOCK_KEY, String(nextLockUntil))
+                localStorage.setItem(ATTEMPTS_KEY, '0')
+                setLoginMessage('Demasiados intentos fallidos. Acceso bloqueado por 15 minutos.')
+            }
             alert(err.message)
-            setIsLoggingIn(false) // Force clear on catch
+            setIsLoggingIn(false)
         } finally {
-            // Safety: Clear loading state if no redirection happens soon
             setTimeout(() => {
                 if (!user) setIsLoggingIn(false)
             }, 3000)
-        }
-    }
-
-    const handleRegisterStaff = async (e) => {
-        e.preventDefault()
-        setIsLoggingIn(true)
-        try {
-            const { code, error } = await registerStaff(
-                newStaffData.firstName,
-                newStaffData.lastName,
-                newStaffData.phone
-            )
-            if (error) throw error
-            setGeneratedCode(code)
-            setDeliveryView('login')
-            setShowNewDeliveryModal(true)
-        } catch (err) {
-            alert(err.message)
-        } finally {
-            setIsLoggingIn(false)
         }
     }
 
@@ -285,7 +304,22 @@ export default function Delivery({ setView }) {
             </div>
         )
     }
-
+    if (user && profile && profile.role !== 'delivery') {
+        return (
+            <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
+                <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md text-center">
+                    <h2 className="text-2xl font-bold mb-2">Acceso denegado</h2>
+                    <p className="text-gray-500 text-sm mb-8">Esta cuenta no tiene permisos de repartidor.</p>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full bg-[#e5242c] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm"
+                    >
+                        Cerrar sesion
+                    </button>
+                </div>
+            </div>
+        )
+    }
     // --- VISTAS DE LOGIN / REGISTRO ---
     if (!user) {
         if (deliveryView === 'login') {
@@ -316,15 +350,15 @@ export default function Delivery({ setView }) {
                             >
                                 {isLoggingIn ? 'Validando...' : 'Validar y Entrar'} <FaArrowRight />
                             </button>
+                            {loginMessage && (
+                                <p className="text-[11px] text-yellow-500 font-bold text-center">{loginMessage}</p>
+                            )}
                         </form>
 
                         <div className="mt-8 pt-8 border-t border-white/5">
-                            <button
-                                onClick={() => setDeliveryView('register')}
-                                className="text-gray-500 hover:text-white transition-colors text-sm"
-                            >
-                                Soy un nuevo repartidor
-                            </button>
+                            <p className="text-gray-500 text-sm text-center">
+                                Alta de repartidores deshabilitada en este panel. Solicitala al administrador.
+                            </p>
                         </div>
                     </div>
                     {showNewDeliveryModal && (
@@ -340,49 +374,18 @@ export default function Delivery({ setView }) {
         if (deliveryView === 'register') {
             return (
                 <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
-                    <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md animate-in slide-in-from-right duration-500 relative z-[1001]">
-                        <h2 className="text-2xl font-bold text-center mb-2">Nuevo Repartidor</h2>
-                        <p className="text-gray-500 text-center text-sm mb-8">Completa tus datos para generarte un código de acceso.</p>
-
-                        <form onSubmit={handleRegisterStaff} className="space-y-4">
-                            <input
-                                type="text"
-                                placeholder="Nombre(s)"
-                                required
-                                className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
-                                value={newStaffData.firstName}
-                                onChange={e => setNewStaffData({ ...newStaffData, firstName: e.target.value })}
-                            />
-                            <input
-                                type="text"
-                                placeholder="Apellido(s)"
-                                required
-                                className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
-                                value={newStaffData.lastName}
-                                onChange={e => setNewStaffData({ ...newStaffData, lastName: e.target.value })}
-                            />
-                            <input
-                                type="tel"
-                                placeholder="Número de Celular"
-                                required
-                                className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-[#e5242c] transition-all"
-                                value={newStaffData.phone}
-                                onChange={e => setNewStaffData({ ...newStaffData, phone: e.target.value })}
-                            />
-                            <button
-                                disabled={isLoggingIn}
-                                className="w-full bg-[#1e1e1e] border-2 border-[#e5242c] text-white py-5 rounded-2xl font-black hover:bg-[#e5242c] transition-all disabled:opacity-30 mt-4 uppercase tracking-widest text-sm"
-                            >
-                                {isLoggingIn ? 'Generando Acceso...' : 'Registrarme y Obtener Código'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setDeliveryView('login')}
-                                className="w-full text-gray-500 text-sm py-2"
-                            >
-                                Volver al inicio
-                            </button>
-                        </form>
+                    <div className="bg-[#111] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md text-center">
+                        <h2 className="text-2xl font-bold mb-2">Registro deshabilitado</h2>
+                        <p className="text-gray-500 text-sm mb-8">
+                            Por seguridad, el alta de repartidores se realiza solo desde el panel administrativo.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setDeliveryView('login')}
+                            className="w-full bg-[#e5242c] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm"
+                        >
+                            Volver al login
+                        </button>
                     </div>
                 </div>
             )
